@@ -1,0 +1,23 @@
+---
+- name: Deploy {{ cert_manager_name }}
+  connection: local
+  become: "{{ cert_manager_become }}"
+  run_once: true
+  kubernetes.core.helm:
+    name: "{{ cert_manager_name }}"
+    namespace: "{{ cert_manager_namespace }}"
+    chart_ref: "{{ cert_manager_helm_repo }}/{{ cert_manager_name }}"
+    chart_version: "{{ cert_manager_chart_version }}"
+    values_files: "{{ cert_manager_config_path }}/cert-manager-values.yaml"
+    create_namespace: true
+    atomic: "{{ not cert_manager_debug }}"
+    wait: "{{ not cert_manager_debug }}"
+    update_repo_cache: true
+    wait_timeout: 300s
+    binary_path: "{{ cert_manager_helm_bin }}"
+    kubeconfig: "{{ cert_manager_kubeconfig }}"
+  no_log: "{{ cert_manager_no_log }}"
+  environment:
+    HELM_CONFIG_HOME: "{{ cert_manager_helm_repo_config_dir }}"
+    HELM_CACHE_HOME: "{{ cert_manager_helm_repo_cache_dir }}"
+    HELM_DATA_HOME: "{{ cert_manager_helm_repo_data_dir }}"

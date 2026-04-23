@@ -1,0 +1,32 @@
+---
+- name: "set_repositories | add trust to repos from set_repositories_requared_repo variable"
+  apt_key:
+    url: "{{ item.key_url | default(omit) }}"
+    state: present
+    data: "{{ item.data | default(omit) }}"
+    validate_certs: false
+  when:
+    - item.name is defined
+    - item.key_url is defined or item.data is defined
+  loop: "{{ set_repositories_repo_keys }}"
+  loop_control:
+    label: "{{ item.name }}"
+  environment:
+    http_proxy: "{{ set_repositories_apt_proxy }}"
+    https_proxy: "{{ set_repositories_apt_proxy }}"
+
+- name: "set_repositories | add requared repo from set_repositories_repo_keys"
+  apt_repository:
+    repo: "{{ item.repo_string }}"
+    codename: "focal"
+    state: present
+    filename: "{{ item.name }}"
+    update_cache: false
+  when:
+    - item.name is defined
+    - item.repo_string is defined
+  loop: "{{ set_repositories_requared_repo }}"
+  loop_control:
+    label: "{{ item.name }}"
+  notify:
+    - apt cache update

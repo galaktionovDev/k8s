@@ -1,0 +1,25 @@
+---
+- name: Create Namespace {{ gpu_operator_namespace }}
+  connection: local
+  become: "{{ gpu_operator_become }}"
+  kubernetes.core.k8s:
+    name: "{{ gpu_operator_namespace }}"
+    kind: Namespace
+    state: present
+    kubeconfig: "{{ gpu_operator_kubeconfig }}"
+  notify: Deploy {{ gpu_operator_name }}
+
+- name: Add labels to Namespace {{ gpu_operator_namespace }}
+  connection: local
+  become: "{{ gpu_operator_become }}"
+  kubernetes.core.k8s:
+    name: "{{ gpu_operator_namespace }}"
+    kind: Namespace
+    state: patched
+    definition:
+      metadata:
+        annotations:
+          openshift.io/requester: 'system:admin'
+        labels: "{{ gpu_operator_namespace_labels | from_yaml }}"
+    kubeconfig: "{{ gpu_operator_kubeconfig }}"
+  when: gpu_operator_namespace_labels | length > 0

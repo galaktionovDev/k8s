@@ -1,0 +1,14 @@
+---
+# Enable LB setup on these nodes
+cluster_lb_enabled: true
+
+# Enable keepalived VIP failover for LB nodes.
+# false: single HAProxy node without VIP (bootstrap/staging mode)
+# true: two+ HAProxy nodes with shared VIP (production HA mode)
+cluster_lb_vip_enabled: false
+
+# HAProxy defaults
+haproxy_bind_address: "0.0.0.0"
+haproxy_bind_port: 6443
+haproxy_backend_group: "masters"
+haproxy_backend_port: 6443

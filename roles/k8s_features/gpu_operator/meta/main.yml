@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  author: EG
+  description: Role for deploying NVIDIA GPU Operator in k8s cluster
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+  license: MIT
+  galaxy_tags: []
+dependencies: []

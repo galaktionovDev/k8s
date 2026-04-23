@@ -1,0 +1,163 @@
+---
+
+nexus_hostname: "{{ nexus_url | urlsplit('hostname') }}"
+set_hostname: true
+cert_manager_enabled: true
+longhorn_enabled: false
+gpu_operator_enabled: true
+set_ca_trust: true
+
+# DNS servers defaults (can be overridden in AWX or inventory)
+dns_servers_default:
+  - 10.16.4.15
+  - 10.16.4.16
+
+cluster_name: "{{ cloud_cluster_name }}"
+domain_suffix: "{{ cloud_domain_suffix }}"
+k8s_version: "{{ cloud_k8s_version }}"
+
+# HA control plane endpoint priority:
+# 1) cluster_api_vip_fqdn / cluster_api_vip
+# 2) first load_balancer host IP from inventory (only when exactly one LB host exists)
+# 3) first master IP (fallback)
+cluster_public_api_fqdn: "{{ cluster_api_vip_fqdn | default(cluster_api_vip, true) | default((hostvars[(groups.get('load_balancers', []) | first)]['ansible_default_ipv4']['address']) if (groups.get('load_balancers', []) | length == 1) else '', true) | default(hostvars[groups['masters'][0]]['ansible_default_ipv4']['address'], true) }}"
+cluster_public_api_port: 6443
+cluster_api_fqdn: "{{ cluster_api_vip_fqdn | default(cluster_api_vip, true) | default((hostvars[(groups.get('load_balancers', []) | first)]['ansible_default_ipv4']['address']) if (groups.get('load_balancers', []) | length == 1) else '', true) | default(hostvars[groups['masters'][0]]['ansible_default_ipv4']['address'], true) }}"
+kubeadm_masters_init_cluster_api_hostname: "{{ cluster_api_fqdn }}"
+kubeadm_worker_cluster_api_hostname: "{{ cluster_api_fqdn }}"
+service_cidr: "10.96.0.0/16"
+pod_cidr: "10.244.0.0/16"
+
+kubeadm_masters_init_pod_network_cidr: "{{ pod_cidr }}"
+kubeadm_masters_init_service_cidr: "{{ service_cidr }}"
+
+kubeadm_worker_pod_network_cidr: "{{ pod_cidr }}"
+kubeadm_worker_service_cidr: "{{ service_cidr }}"
+
+# coredns configuration
+coredns_upstream_dns: "{{ dns_servers_default }}"
+coredns_cache_ttl: 30
+
+# cilium
+cilium_k8s_api_host: "{{ cluster_api_fqdn }}"
+cilium_pod_subnet_cidr: "{{ pod_cidr }}"
+cilium_image_tag: v1.16.4
+cilium_operator_generic_image_tag: v1.16.4
+cilium_hubble_relay_image_tag: v1.16.4
+cilium_hubble_ui_backend_image_tag: v1.16.4
+cilium_hubble_ui_image_tag: v1.16.4
+cilium_envoy_image_tag: v1.30.7
+cilium_helm_chart_version: 1.16.4
+cilium_cli_url: "https://{{ nexus_hostname }}/repository/products-raw/cilium"
+hubble_cli_url: "https://{{ nexus_hostname }}/repository/products-raw/cilium"
+
+# ingress
+ingress_host_network: false
+ingress_infra_enabled: true
+ingress_ssl_passthrough: true
+ingress_scope_enabled: false
+
+kubeadm_version: "{{ cloud_k8s_version }}*"
+kubeadm_worker_k8s_version: "v{{ cloud_k8s_version }}"
+kubeadm_worker_cluster_name: "{{ cloud_cluster_name }}"
+kubeadm_masters_init_k8s_version: "v{{ cloud_k8s_version }}"
+kubeadm_masters_init_cluster_name: "{{ cloud_cluster_name }}"
+kubectl_version: "{{ cloud_k8s_version }}*"
+kubelet_version: "{{ cloud_k8s_version }}*"
+kubed_cluster_name: "{{ cloud_cluster_name }}"
+coredns_image: coredns/coredns:v1.12.1
+
+cluster_container_runtime: crio
+cr_socket: "/var/run/crio/crio.sock"
+# cr_crio_auth_hostname: "{{ docker_hostname }}/{{ nexus_docker_repo }}"
+cr_crio_auth_hostname: ""
+
+cluster_registry: "cluster.mirror"
+
+cr_sandbox_image: "{{ cluster_registry }}/pause:3.10.1"
+
+cr_crio_registry_mapping_mirror_default: "{{ nexus_docker_url }}"
+# cr_crio_registry_mapping_mirror_default: "{{ docker_hostname }}/{{ nexus_docker_repo }}"
+cr_crio_registry_mapping_mirrors:
+  - prefix: "{{ cluster_registry }}"
+
+cluster_vault_portal_integration: false
+
+nexus_helm_repo: "k8s-box"
+nexus_helm_ca: "{{ playbook_dir }}/cluster_config/files/CA.crt"
+nexus_docker_repo: "k8s-box"
+
+helm_repo_url_name: "https://{{ nexus_hostname }}/repository/products-helm/"
+
+helm_install: true
+helm_install_validate_certs: false
+helm_path: "{{ playbook_dir }}/cluster_config/{{ cluster_name }}/tmp"
+helm_version: v3.16.3
+helm_url: "https://{{ nexus_hostname }}/repository/products-raw/helm"
+helm_diff_url: "https://{{ nexus_hostname }}/repository/products-raw/helm"
+cluster_helm_bin: "{{ playbook_dir }}/cluster_config/{{ cluster_name }}/bin/helm"
+ca_url: "https://{{ nexus_hostname }}/repository/products-raw/CA.crt"
+
+# helm_install: false
+# cluster_helm_bin: "/usr/local/bin/helm"
+
+cluster_become: false
+
+cluster_kubeconfig: "{{ playbook_dir }}/cluster_config/{{ cluster_name }}/cluster-kubeconfig.yaml"
+cluster_config_path: "{{ playbook_dir }}/cluster_config/{{ cluster_name }}/cluster_templates"
+cluster_helm_config_dir: "{{ playbook_dir }}/cluster_config/{{ cluster_name }}/helm/config"
+cluster_helm_cache_dir: "{{ playbook_dir }}/cluster_config/{{ cluster_name }}/helm/cache"
+cluster_helm_data_dir: "{{ playbook_dir }}/cluster_config/{{ cluster_name }}/helm/data"
+
+# set_hostname_addition_hosts:
+#  - 10.13.251.118 nexus.box
+#  - "{{ hostvars[groups['masters'][0]]['ansible_default_ipv4']['address'] }} {{ cluster_public_api_fqdn }}"
+#  - "{{ hostvars[groups['masters'][0]]['ansible_default_ipv4']['address'] }} {{ cluster_api_fqdn }}"
+
+set_repositories_repo_keys:
+  - name: kubernetes
+    key_url: "https://{{ nexus_hostname }}/repository/products-raw/products-apt.public.gpg.key"
+
+set_repositories_requared_repo:
+  - name: kubernetes
+    repo_string: "deb https://{{ nexus_hostname }}/repository/products-apt/ focal main"
+
+cluster_helm_repo: nexus-helm
+
+helm_repo_list:
+  - name: nexus-helm
+    caFile: "{{ nexus_helm_ca }}"
+    url: "{{ helm_repo_url_name }}"
+
+# docker_hostname: "{{ gitea_hostname }}"
+# docker_hostname: "{{ nexus_hostname }}{{ ':'+ nexus_docker_port if nexus_docker_port | length > 0 else '' }}"
+cluster_cluster_issuer_name: cluster
+cert_manager_tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/control-plane
+cert_manager_replica_count: 1
+cert_manager_webhook_replica_count: 1
+cert_manager_cainjector_replica_count: 1
+ingress_tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/control-plane
+kube_metrics_tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/control-plane
+kube_metrics_replicas: 1
+kube_metrics_pdb_enabled: false
+
+kubeconfig_sa_server: "https://{{ cluster_public_api_fqdn }}:{{ cluster_public_api_port }}"
+
+set_packages: true
+set_packages_unnecessary_packages:
+  - containerd.io
+  - docker-ce
+  - docker-ce-cli
+  - docker-compose-plugin

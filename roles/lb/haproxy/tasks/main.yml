@@ -1,0 +1,74 @@
+---
+- name: Normalize optional HAProxy list vars
+  ansible.builtin.set_fact:
+    haproxy_frontends_input: "{{ (haproxy_frontends | from_yaml) if (haproxy_frontends is defined and haproxy_frontends is string) else (haproxy_frontends | default([])) }}"
+    haproxy_backends_input: "{{ (haproxy_backends | from_yaml) if (haproxy_backends is defined and haproxy_backends is string) else (haproxy_backends | default([])) }}"
+    haproxy_backend_servers_input: "{{ (haproxy_backend_servers | from_yaml) if (haproxy_backend_servers is string) else (haproxy_backend_servers | default([])) }}"
+  when: haproxy_enabled | bool
+
+- name: Init backend servers resolved from inventory group
+  ansible.builtin.set_fact:
+    haproxy_backend_servers_from_group: []
+  when: haproxy_enabled | bool
+
+- name: Resolve backend servers from inventory group
+  ansible.builtin.set_fact:
+    haproxy_backend_servers_from_group: "{{ haproxy_backend_servers_from_group + [hostvars[item].get('ansible_host') | default(hostvars[item].get('ansible_default_ipv4', {}).get('address'), true) | default(item, true)] }}"
+  loop: "{{ groups[haproxy_backend_group] | default([]) }}"
+  when: haproxy_enabled | bool
+
+- name: Validate HAProxy base settings
+  ansible.builtin.assert:
+    that:
+      - haproxy_bind_port | int > 0
+      - haproxy_backend_port | int > 0
+      - (haproxy_backends_input is sequence and haproxy_backends_input is not string and haproxy_backends_input | length > 0)
+        or (haproxy_backend_servers_input is sequence and haproxy_backend_servers_input is not string and haproxy_backend_servers_input | length > 0)
+        or (haproxy_backend_servers_from_group | length > 0)
+    fail_msg: "HAProxy backend servers not defined. Set haproxy_backends, haproxy_backend_servers, or define group {{ haproxy_backend_group }}."
+  when: haproxy_enabled | bool
+
+- name: Build HAProxy frontend/backend lists
+  ansible.builtin.set_fact:
+    haproxy_frontends_effective: "{{ haproxy_frontends_input if (haproxy_frontends_input is sequence and haproxy_frontends_input is not string and haproxy_frontends_input | length > 0) else [{'name': haproxy_default_frontend_name, 'port': haproxy_bind_port, 'backend': haproxy_default_backend_name}] }}"
+    haproxy_backends_effective: "{{ haproxy_backends_input if (haproxy_backends_input is sequence and haproxy_backends_input is not string and haproxy_backends_input | length > 0) else [{'name': haproxy_default_backend_name, 'servers': (haproxy_backend_servers_input if (haproxy_backend_servers_input is sequence and haproxy_backend_servers_input is not string and haproxy_backend_servers_input | length > 0) else haproxy_backend_servers_from_group), 'port': haproxy_backend_port}] }}"
+  when: haproxy_enabled | bool
+
+- name: Normalize resolved HAProxy lists for Ansible 2.10
+  ansible.builtin.set_fact:
+    haproxy_frontends_effective: "{{ (haproxy_frontends_effective | from_yaml) if (haproxy_frontends_effective is string) else haproxy_frontends_effective }}"
+    haproxy_backends_effective: "{{ (haproxy_backends_effective | from_yaml) if (haproxy_backends_effective is string) else haproxy_backends_effective }}"
+  when: haproxy_enabled | bool
+
+- name: Validate resolved HAProxy lists
+  ansible.builtin.assert:
+    that:
+      - haproxy_frontends_effective | select('mapping') | list | length > 0
+      - haproxy_backends_effective | select('mapping') | list | length > 0
+    fail_msg: "Resolved haproxy_frontends/haproxy_backends are invalid. Provide list-of-mapping values."
+  when: haproxy_enabled | bool
+
+- name: Install HAProxy
+  ansible.builtin.apt:
+    name: haproxy
+    state: present
+    update_cache: true
+    cache_valid_time: 60
+  when: haproxy_enabled | bool
+
+- name: Template HAProxy config
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart haproxy
+  when: haproxy_enabled | bool
+
+- name: Ensure HAProxy is enabled and running
+  ansible.builtin.systemd:
+    name: haproxy
+    enabled: true
+    state: started
+  when: haproxy_enabled | bool

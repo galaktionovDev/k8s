@@ -1,0 +1,10 @@
+---
+
+set_ca_trust: false
+set_ca_trust_additional_ca:
+  - filename: "CA.crt"
+    source_path: "{{ playbook_dir }}/cluster_config/files/CA.crt"
+set_ca_trust_restart_services: []
+
+# set_ca_trust_restart_services:
+# - name: containerd

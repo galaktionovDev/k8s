@@ -1,0 +1,54 @@
+---
+cert_manager_enabled: false
+cert_manager_plugin_enabled: false
+cert_manager_helm_force: false
+cert_manager_debug: false
+cert_manager_name: cert-manager
+cert_manager_chart_version: v1.16.2
+cert_manager_controller_image_repository: "{{ cluster_registry | default('quay.io') }}"
+cert_manager_controller_image_name: jetstack/cert-manager-controller
+cert_manager_controller_image_tag: v1.16.2
+cert_manager_webhook_image_repository: "{{ cluster_registry | default('quay.io') }}"
+cert_manager_webhook_image_name: jetstack/cert-manager-webhook
+cert_manager_webhook_image_tag: v1.16.2
+cert_manager_cainjector_image_repository: "{{ cluster_registry | default('quay.io') }}"
+cert_manager_cainjector_image_name: jetstack/cert-manager-cainjector
+cert_manager_cainjector_image_tag: v1.16.2
+cert_manager_ctl_image_repository: "{{ cluster_registry | default('quay.io') }}"
+cert_manager_ctl_image_name: jetstack/cert-manager-startupapicheck
+cert_manager_ctl_image_tag: v1.16.2
+
+cert_manager_namespace: cluster-cert-manager
+cert_manager_node_selector:
+  node-role.kubernetes.io/infra: ""
+cert_manager_namespace_labels:
+  networking.k8s.io/policy-group: cert-manager
+
+cert_manager_log_level: 2
+cert_manager_replica_count: 2
+cert_manager_requests_memory: 100Mi
+cert_manager_requests_cpu: 5m
+cert_manager_proxy_url: ""
+cert_manager_proxy_exclude: ""
+cert_manager_webhook_replica_count: 2
+cert_manager_cainjector_replica_count: 2
+
+cert_manager_kubectl_plugin_path: "/app/kubectl/cert-manager-plugin-{{ cert_manager_chart_version }}"
+cert_manager_kubectl_plugin_url: https://github.com/cert-manager/cert-manager/releases/download/{{ cert_manager_chart_version }}
+cert_manager_kubectl_plugin_filename: kubectl-cert_manager-linux-amd64.tar.gz
+cert_manager_kubectl_plugin_http_proxy: ""
+
+cert_manager_monitoring_name: "{{ monitoring_name | default('monitoring') }}"
+cert_manager_kubeconfig: "{{ cluster_kubeconfig | default('/etc/kubernetes/admin.conf') }}"
+cert_manager_helm_bin: "{{ cluster_helm_bin | default('/usr/local/bin/helm') }}"
+cert_manager_helm_repo: "{{ cluster_helm_repo | default('NO_REPO') }}"
+cert_manager_config_path: "{{ cluster_config_path | default('/etc/kubernetes/templates') }}"
+
+cert_manager_no_log: "{{ cluster_no_log | default('true') }}"
+
+cert_manager_helm_repo_config_dir: "{{ cluster_helm_config_dir | default('/root/.config/helm') }}"
+cert_manager_helm_repo_cache_dir: "{{ cluster_helm_cache_dir | default('/root/.cache/helm') }}"
+cert_manager_helm_repo_data_dir: "{{ cluster_helm_data_dir | default('/root/.local/share/helm') }}"
+
+cert_manager_become: "{{ cluster_become | default('true') }}"
+cert_manager_tolerations: []

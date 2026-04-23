@@ -1,0 +1,20 @@
+---
+
+- name: "set_dns | replace resolv.conf"
+  become: true
+  template:
+    src: resolv.conf.j2
+    dest: /etc/resolv.conf
+    mode: "0644"
+    owner: root
+    group: root
+  when:
+    - set_dns_ip | length > 0
+
+- name: "set_dns | disable dnsmasq"
+  become: true
+  systemd:
+    name: dnsmasq
+    state: stopped
+    enabled: false
+  when: set_dns_bank | bool

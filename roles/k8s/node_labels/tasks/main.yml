@@ -1,0 +1,30 @@
+---
+- name: Add label to nodes when workers
+  connection: local
+  kubernetes.core.k8s:
+    name: "{{ inventory_hostname }}"
+    kind: Node
+    state: patched
+    definition:
+      metadata:
+        labels:
+          "{{ node_labels | from_yaml }}"
+    kubeconfig: "{{ node_labels_kubeconfig }}"
+  when:
+    - node_labels | length > 0
+    - not (inventory_hostname in groups[node_labels_masters_groups])
+
+- name: Add label to nodes when run on masters
+  connection: local
+  kubernetes.core.k8s:
+    name: "{{ inventory_hostname }}"
+    kind: Node
+    state: patched
+    definition:
+      metadata:
+        labels:
+          "{{ node_labels | from_yaml }}"
+    kubeconfig: "{{ node_labels_kubeconfig }}"
+  when:
+    - node_labels | length > 0
+    - inventory_hostname in groups[node_labels_masters_groups]

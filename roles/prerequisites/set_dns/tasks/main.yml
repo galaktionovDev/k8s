@@ -1,0 +1,15 @@
+---
+
+- name: "set_dns"
+  import_tasks: set-dns.yml
+  when: set_dns | bool
+
+- name: "set_dns | Make precedence to ipv4 A records"
+  become: true
+  lineinfile:
+    dest: /etc/gai.conf
+    line: "precedence ::ffff:0:0/96  100"
+    state: present
+    create: true
+    mode: "0644"
+  when: set_dns_priority_ipv4 | bool

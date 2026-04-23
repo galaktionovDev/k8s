@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  author: EG
+  description: Just Install kubelete deb packages
+  company: CLD
+  license: MIT
+
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - noble
+  galaxy_tags: []
+
+dependencies: []

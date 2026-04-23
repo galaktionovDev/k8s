@@ -1,0 +1,76 @@
+---
+
+- name: Create ServiceAccount
+  connection: local
+  become: "{{ admin_sa_become }}"
+  run_once: true
+  kubernetes.core.k8s:
+    name: "{{ admin_sa_name }}"
+    namespace: "{{ admin_sa_namespace }}"
+    api_version: v1
+    kind: ServiceAccount
+    state: present
+    kubeconfig: "{{ admin_sa_kubeconfig }}"
+
+- name: Create ClusterRoleBinding for cluster-admin access
+  connection: local
+  become: "{{ admin_sa_become }}"
+  run_once: true
+  kubernetes.core.k8s:
+    name: "{{ admin_sa_name }}-cluster-admin"
+    api_version: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    state: present
+    definition:
+      metadata:
+        name: "{{ admin_sa_name }}-cluster-admin"
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: cluster-admin
+      subjects:
+      - kind: ServiceAccount
+        name: "{{ admin_sa_name }}"
+        namespace: "{{ admin_sa_namespace }}"
+    kubeconfig: "{{ admin_sa_kubeconfig }}"
+
+- name: Create token Secret for ServiceAccount
+  connection: local
+  become: "{{ admin_sa_become }}"
+  run_once: true
+  kubernetes.core.k8s:
+    name: "{{ admin_sa_name }}-token"
+    namespace: "{{ admin_sa_namespace }}"
+    api_version: v1
+    kind: Secret
+    state: present
+    definition:
+      metadata:
+        name: "{{ admin_sa_name }}-token"
+        namespace: "{{ admin_sa_namespace }}"
+        annotations:
+          kubernetes.io/service-account.name: "{{ admin_sa_name }}"
+      type: kubernetes.io/service-account-token
+    kubeconfig: "{{ admin_sa_kubeconfig }}"
+
+- name: Wait for token generation
+  pause:
+    seconds: 2
+
+- name: Get token from Secret
+  connection: local
+  become: "{{ admin_sa_become }}"
+  run_once: true
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ admin_sa_name }}-token"
+    namespace: "{{ admin_sa_namespace }}"
+    kubeconfig: "{{ admin_sa_kubeconfig }}"
+  register: token_secret
+
+- name: Extract token
+  set_fact:
+    admin_sa_token: "{{ token_secret.resources[0].data.token | b64decode }}"
+  when: token_secret.resources
+

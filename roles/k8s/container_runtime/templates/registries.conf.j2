@@ -1,0 +1,12 @@
+{% if cr_crio_registry_mapping_mirrors | length > 0 %}
+{% for mirror in cr_crio_registry_mapping_mirrors %}
+[[registry]]
+  prefix = "{{ mirror.prefix | default(cr_crio_registry_mapping_prefix_default) }}"
+  location = "{{ mirror.mirror | default(cr_crio_registry_mapping_mirror_default)}}"
+  mirror-by-digest-only = false
+
+  [[registry.mirror]]
+    location = "{{ mirror.mirror | default(cr_crio_registry_mapping_mirror_default)}}"
+
+{% endfor %}
+{% endif %}

@@ -1,0 +1,58 @@
+---
+- name: create kubeadm directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+    state: directory
+  loop:
+    - /etc/kubernetes/kubeadm
+    - /etc/kubernetes/kubeadm/patches
+
+- name: generate join token on masters
+  run_once: true
+  ansible.builtin.command:
+    cmd: >-
+      kubeadm token create --config /etc/kubernetes/kubeadm/init-kubeadm.yaml
+  register: kubeadm_worker_join_command
+  changed_when: false
+  delegate_to: "{{ groups[kubeadm_worker_master_group] | first | string }}"
+  no_log: "{{ kubeadm_worker_no_log }}"
+
+- name: get sha256 hash CA certificate
+  run_once: true
+  changed_when: false
+  ansible.builtin.raw: >-
+    openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
+  register: kubeadm_worker_ca_hash
+  delegate_to: "{{ groups[kubeadm_worker_master_group] | first | string }}"
+  no_log: "{{ kubeadm_worker_no_log }}"
+
+- name: template kubeadm join config
+  ansible.builtin.template:
+    src: join-kubeadm.yaml.j2
+    dest: /etc/kubernetes/kubeadm/join-kubeadm.yaml
+    owner: root
+    group: root
+    mode: "0644"
+  no_log: "{{ kubeadm_worker_no_log }}"
+  when:
+    - not ansible_check_mode
+  notify:
+    - kubeadm upgrade node
+
+
+- name: join workers to cluster
+  ansible.builtin.command:
+    argv:
+      - kubeadm
+      - join
+      - --config
+      - /etc/kubernetes/kubeadm/join-kubeadm.yaml
+      - --v=5
+    creates: /etc/kubernetes/pki/ca.crt
+  no_log: "{{ kubeadm_worker_no_log }}"
+  register: kubeadm_worker_join
+  notify:
+    - wait nodes ready

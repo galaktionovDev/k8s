@@ -1,0 +1,10 @@
+---
+sysctl_parameters:
+  - "net.core.somaxconn=65535"
+  - "net.ipv4.ip_local_port_range=32768 60999"
+  - "net.ipv4.tcp_tw_reuse=1"
+  - "vm.max_map_count=262144"
+  - "net.nf_conntrack_max=1048576"
+
+sysctl_kernel_modules:
+  - ip_conntrack

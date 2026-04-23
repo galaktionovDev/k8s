@@ -1,0 +1,7 @@
+---
+
+node_labels_masters_groups: masters
+
+node_labels: []
+
+node_labels_kubeconfig: "{{ cluster_kubeconfig | default('/etc/kubernetes/admin.conf') }}"

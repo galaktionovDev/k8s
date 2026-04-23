@@ -1,0 +1,12 @@
+---
+kubeadm_worker_cluster_api_hostname: "api-int.{{ cluster_name }}.{{ domain_suffix }}"
+kubeadm_worker_cri_socket: "{{ cr_socket }}"
+kubeadm_worker_k8s_version: "{{ k8s_version | default('v1.22.7') }}"
+kubeadm_worker_cluster_name: "{{ cluster_name | default('cld-k8s-test') }}"
+kubeadm_worker_service_cidr: "172.16.0.0/12"
+kubeadm_worker_pod_network_cidr: "192.168.0.0/16"
+kubeadm_worker_master_group: masters
+kubeadm_worker_no_log: "{{ cluster_no_log | default('true') }}"
+kubeadm_worker_become: "{{ cluster_become | default('true') }}"
+kubeadm_worker_kubeconfig: "{{ cluster_kubeconfig| default('/etc/kubernetes/admin.conf') }}"
+kubeadm_worker_api_port: 6443

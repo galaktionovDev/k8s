@@ -1,0 +1,70 @@
+---
+
+## https://github.com/kubernetes-sigs/metrics-server/blob/master/charts/metrics-server/values.yaml
+
+image:
+  repository: {{ kube_metrics_repository }}/{{ kube_metrics_image_name }}
+  tag: {{ kube_metrics_image_tag }}
+  pullPolicy: {{ kube_metrics_pullpolicy }}
+
+podSecurityContext: {}
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+containerPort: 4443
+
+replicas: {{ kube_metrics_replicas }}
+
+updateStrategy:
+   type: RollingUpdate
+   rollingUpdate:
+     maxSurge: {{ kube_metrics_maxsurge }}
+     maxUnavailable: {{ kube_metrics_maxunavailable }}
+
+podDisruptionBudget:
+  # https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+  enabled: {{ kube_metrics_pdb_enabled }}
+  minAvailable: {{ kube_metrics_pdb_min_available }}
+
+rbac:
+  create: true
+  pspEnabled: {{ kube_metrics_psp_enabled }}
+
+args:  
+{% for arg in kube_metrics_args -%}
+- {{ arg }}
+{% endfor %}
+
+
+metrics:
+  enabled: {{ kube_metrics_own_metrics_enabled }} #
+
+serviceMonitor:
+  enabled: {{ kube_metrics_own_metrics_enabled }}  #
+  additionalLabels: {}
+  interval: 1m
+  scrapeTimeout: 10s
+
+resources:
+  requests: 
+    cpu: {{ kube_metrics_resource_req_cpu }}
+    memory: {{ kube_metrics_resource_req_memory }}
+
+nodeSelector: 
+  {{ kube_metrics_nodeselector }}
+tolerations: {{ kube_metrics_tolerations }}
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: 'app.kubernetes.io/name'
+          operator: In
+          values:
+          - metrics-server
+      topologyKey: kubernetes.io/hostname

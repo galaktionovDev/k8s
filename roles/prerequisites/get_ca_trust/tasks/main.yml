@@ -1,0 +1,29 @@
+---
+- name: Create kubeconfig directory
+  connection: local
+  run_once: true
+  ansible.builtin.file:
+    path: "{{ playbook_dir }}/cluster_config/files"
+    state: directory
+    mode: "0755"
+
+- name: Validate CA trust source variables
+  connection: local
+  run_once: true
+  ansible.builtin.assert:
+    that:
+      - (groups.get('k8s', []) | length) > 0
+      - (hostvars[groups['k8s'][0]].ca_url | default('', true) | length) > 0
+    fail_msg: >-
+      ca_url is empty for k8s hosts. Ensure cloud_variables/common/k8s.yml is loaded
+      and nexus_url is defined before prerequisites/get_ca_trust.
+
+- name: Fetch CA trust
+  connection: local
+  run_once: true
+  ansible.builtin.get_url:
+    url: "{{ hostvars[groups['k8s'][0]].ca_url }}"
+    dest: "{{ playbook_dir }}/cluster_config/files/CA.crt"
+    validate_certs: false
+    mode: "0755"
+  no_log: "{{ cluster_no_log | default('true') }}"

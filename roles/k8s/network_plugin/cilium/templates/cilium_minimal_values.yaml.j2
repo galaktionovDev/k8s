@@ -1,0 +1,123 @@
+{% if cilium_k8s_api_host | length > 0 %}
+k8sServiceHost: {{ cilium_k8s_api_host }}
+k8sServicePort: {{ cilium_k8s_api_port }}
+{% endif %}
+
+serviceAccounts:
+  cilium:
+    create: true
+    name: cilium
+    annotations: {}
+  operator:
+    create: true
+    name: cilium-operator
+    annotations: {}
+
+agent: true
+
+rollOutCiliumPods: true
+
+localRedirectPolicy: true
+
+kubeProxyReplacement: true
+
+hostServices:
+  enabled: true
+  hostNamespaceOnly: true
+  protocols: tcp,udp
+
+resources:
+  requests:
+    cpu: {{ cilium_agent_request_cpu }}
+    memory: {{ cilium_agent_request_memory }}
+image:
+  repository: {{ cilium_image_repository }}/{{ cilium_image_name }}
+  tag: {{ cilium_image_tag }}
+  useDigest: false
+
+envoy:
+  image:
+    repository: {{ cilium_envoy_image_repository }}/{{ cilium_envoy_image_name }}
+    tag: {{ cilium_envoy_image_tag }}
+    useDigest: false
+
+tolerations:
+  - operator: Exists
+
+# -- Pod affinity for cilium-agent.
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/os
+              operator: In
+              values:
+                - linux
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: k8s-app
+          operator: In
+          values:
+          - cilium
+      topologyKey: kubernetes.io/hostname
+
+updateStrategy:
+  rollingUpdate:
+    maxUnavailable: 2
+
+bpf:
+  masquerade: {{ cilium_egressip_enabled | lower }}
+
+ipam:
+  # -- Configure IP Address Management mode.
+  # ref: https://docs.cilium.io/en/stable/concepts/networking/ipam/
+  mode: "cluster-pool"
+  operator:
+    # -- IPv4 CIDR list range to delegate to individual nodes for IPAM.
+    clusterPoolIPv4PodCIDRList:
+      - "{{ cilium_pod_subnet_cidr }}"
+    # -- IPv4 CIDR mask size to delegate to individual nodes for IPAM.
+    clusterPoolIPv4MaskSize: 24
+    # -- Deprecated in favor of ipam.operator.clusterPoolIPv6PodCIDRList.
+    # IPv6 CIDR range to delegate to individual nodes for IPAM.
+    clusterPoolIPv6PodCIDR: "fd00::/104"
+     # -- IPv6 CIDR list range to delegate to individual nodes for IPAM.
+    clusterPoolIPv6PodCIDRList: []
+    # -- IPv6 CIDR mask size to delegate to individual nodes for IPAM.
+    clusterPoolIPv6MaskSize: 120
+
+egressGateway:
+  enabled: {{ cilium_egressip_enabled | lower }}
+
+prometheus:
+  enabled: {{ cilium_monitoring_features | lower }}
+
+routingMode: "tunnel"
+tunnelProtocol: "{{ cilium_tunnel_name }}"
+
+operator:
+  enabled: true
+  rollOutPods: true
+  nodeSelector:
+    {{ cilium_operator_node_selector | to_nice_yaml(indent=4) }}
+  image:
+    repository: {{ cilium_operator_generic_image_repository }}/{{ cilium_operator_generic_image_name | replace('-generic','' ) }}
+    tag: {{ cilium_operator_generic_image_tag }}
+    useDigest: false
+  prometheus:
+    enabled: {{ cilium_monitoring_features | lower }}
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+    - key: node.kubernetes.io/not-ready
+      operator: Exists
+      effect: NoSchedule
+  resources:
+    requests:
+      cpu: {{ cilium_operator_request_cpu }}
+      memory: {{ cilium_operator_request_memory }}
+  replicas: {% if groups['masters'] | default('{}') | length > 1 %}2{% else %}1{% endif %}

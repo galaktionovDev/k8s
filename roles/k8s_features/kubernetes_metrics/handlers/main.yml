@@ -1,0 +1,24 @@
+---
+
+- name: "helm upgrade kube_metrics"
+  no_log: "{{ kube_metrics_no_log }}"
+  connection: local
+  run_once: true
+  kubernetes.core.helm:
+    state: present
+    name: "{{  kube_metrics_name }}"
+    kubeconfig: "{{ kube_metrics_kubeconfig }}"
+    binary_path: "{{ kube_metrics_helm_bin_path }}"
+    chart_version: "{{ kube_metrics_helm_chart_version }}"
+    values_files: "{{ kube_metrics_config_path }}/kube_metrics-values.yaml"
+    chart_ref: "{{ kube_metrics_helm_repo }}/{{ kube_metrics_helm_chart_name }}"
+    history_max: 3
+    update_repo_cache: true
+    namespace: "{{ kube_metrics_namespace }}"
+    atomic: "{{ not (kube_metrics_helm_debug | bool) }}"
+    wait: "{{ not (kube_metrics_helm_debug | bool) }}"
+    wait_timeout: 300s
+  environment:
+    HELM_CONFIG_HOME: "{{ kube_metrics_helm_repo_config_dir }}"
+    HELM_CACHE_HOME: "{{ kube_metrics_helm_repo_cache_dir }}"
+    HELM_DATA_HOME: "{{ kube_metrics_helm_repo_data_dir }}"

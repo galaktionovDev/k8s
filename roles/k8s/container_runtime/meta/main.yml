@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  author: EG
+  description: "Устанавливает один из CRI из поддерживаемых"
+  min_ansible_version: '2.9'
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - noble
+  license: MIT
+  galaxy_tags: []
+dependencies: []

@@ -1,0 +1,7 @@
+---
+
+- name: "set_hostname"
+  import_tasks: set-hostname.yml
+  when:
+   - inventory_hostname is not regex(set_hostname_general_ip_address_pattern)
+   - set_hostname | bool

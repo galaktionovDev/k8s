@@ -1,0 +1,23 @@
+---
+- name: "Configure required kernel modules to load at startup"
+  template:
+    src: modules_k8s.conf.j2
+    dest: /etc/modules-load.d/k8s.conf
+    mode: "0644"
+    owner: root
+    group: root
+
+- name: "Check loaded kernel modules"
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ sysctl_kernel_modules }}"
+
+- name: "Ensure sysctl is set"
+  ansible.posix.sysctl:
+    name: "{{ item.split('=')[0] }}"
+    value: "{{ item.split('=')[1] }}"
+    reload: true
+    sysctl_set: true
+    state: present
+  loop: "{{ sysctl_parameters }}"

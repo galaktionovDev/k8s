@@ -1,0 +1,90 @@
+---
+- name: kubeadm upgrade
+  command: /bin/true
+  notify:
+    - check apply configmap
+    - create apply configmap
+    - kubeadm upgrade apply
+    - kubeadm upgrade node
+  when:
+    - not (kubeadm_init.changed | bool)
+    - not (kubeadm_join.changed | bool)
+
+
+- name: check apply configmap
+  connection: local
+  become: "{{ kubeadm_masters_init_become }}"
+  kubernetes.core.k8s_info:
+    kind: ConfigMap
+    name: kubeadm-apply
+    namespace: kube-system
+    kubeconfig: "{{ kubeadm_masters_init_kubeconfig }}"
+  register: cluster_config
+
+- name: create apply configmap
+  connection: local
+  become: "{{ kubeadm_masters_init_become }}"
+  kubernetes.core.k8s:
+    kind: ConfigMap
+    name: kubeadm-apply
+    namespace: kube-system
+    state: present
+    kubeconfig: "{{ kubeadm_masters_init_kubeconfig }}"
+  when:
+    - cluster_config.resources is defined
+    - cluster_config.resources | length == 0
+
+- name: kubeadm upgrade apply
+  throttle: 1
+  ansible.builtin.command:
+    cmd: "kubeadm upgrade apply --config /etc/kubernetes/kubeadm/init-kubeadm.yaml -y"
+  when:
+    - cluster_config.resources is defined
+    - cluster_config.resources | length == 0
+  register: kubeadm_master_apply
+  notify:
+    - cleanup apply
+    - move backup
+
+- name: kubeadm upgrade node
+  throttle: 1
+  ansible.builtin.command:
+    cmd: "kubeadm upgrade node"
+  register: kubeadm_master_node
+  when:
+    - cluster_config.resources is defined
+    - cluster_config.resources | length > 0
+  notify:
+    - cleanup apply
+
+- name: move backup
+  ansible.builtin.copy:
+    src: /etc/kubernetes/tmp/
+    dest: "{{ kubeadm_masters_init_kubeadm_tmp_dir }}/"
+    remote_src: true
+    owner: root
+    group: root
+    mode: 0700
+
+- name: cleanup apply
+  connection: local
+  become: "{{ cluster_become }}"
+  kubernetes.core.k8s:
+    kind: ConfigMap
+    name: kubeadm-apply
+    namespace: kube-system
+    state: absent
+    kubeconfig: "{{ kubeadm_masters_init_kubeconfig }}"
+  when:
+    - |-
+      ( groups[kubeadm_masters_init_masters_group_name] | map('extract', hostvars) | list |
+      selectattr('kubeadm_master_node','defined') | list | map(attribute='kubeadm_master_node') | list |
+      selectattr('changed', 'defined') | list | selectattr('changed', 'equalto',true) | list +
+      groups[kubeadm_masters_init_masters_group_name] | map('extract', hostvars) | list |
+      selectattr('kubeadm_master_apply','defined') | list | map(attribute='kubeadm_master_apply') | list |
+      selectattr('changed', 'defined') | list | selectattr('changed', 'equalto',true) | list ) |
+      length > (groups[kubeadm_masters_init_masters_group_name] | length - 1 ) | int
+
+# Try collect all variables in group['masters'] via hostvars. Then it select record where 'changed' key exist.
+# Then it select rows where key changed equal true. Then it count length of list.
+# If this list is grater or equal that host count in group['master'], kubeadm-apply configmap will delete

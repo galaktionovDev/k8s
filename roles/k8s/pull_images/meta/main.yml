@@ -1,0 +1,15 @@
+---
+galaxy_info:
+  role_name: pull_images
+  author: EG
+  description: Pull missing docker images via crictl
+  company: CLD
+  galaxy_tags: []
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - noble
+  license: MIT
+
+  min_ansible_version: "2.9"

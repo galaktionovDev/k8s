@@ -1,0 +1,30 @@
+---
+
+- name: "set_ca_trust | copy new trusted CA certificates"
+  become: true
+  copy:
+    src: "{{ item.source_path }}"
+    dest: /usr/local/share/ca-certificates/{{ item.filename }}
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ set_ca_trust_additional_ca }}"
+  loop_control:
+    label: "{{ item.filename }}"
+  when:
+    - set_ca_trust_additional_ca is defined
+    - item.filename is defined
+    - item.source_path is defined
+
+- name: "set_ca_trust | Update CA trusts"
+  become: true
+  command: /usr/sbin/update-ca-certificates
+  changed_when: false
+
+- name: "set_ca_trust | Restart services"
+  become: true
+  systemd:
+    name: "{{ item }}"
+    state: restarted
+  loop: "{{ set_ca_trust_restart_services }}"
+  when: set_ca_trust_restart_services | length > 0

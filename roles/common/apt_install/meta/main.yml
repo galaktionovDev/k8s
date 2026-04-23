@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: apt_install
+  author: EG
+  min_ansible_version: "2.9"
+  license: MIT
+  platforms:
+    - name: Debian
+  description: >
+    Install Debian packages.
+
+allow_duplicates: true

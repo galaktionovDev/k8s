@@ -1,0 +1,154 @@
+---
+- name: "Create {{ ingress_namespace }} directory"
+  connection: local
+  run_once: true
+  file:
+    path: "{{ ingress_config_path }}"
+    state: directory
+    mode: "0755"
+  when: not ingress_shard_delete | bool
+
+- name: "Create namespace {{ ingress_namespace }}"
+  connection: local
+  run_once: true
+  kubernetes.core.k8s:
+    name: "{{ ingress_namespace }}"
+    kind: Namespace
+    state: present
+    kubeconfig: "{{ ingress_kubeconfig }}"
+  when: not ingress_shard_delete | bool
+  notify:
+    - "Deploy nginx ingress"
+
+- name: "Add labels to namespace {{ ingress_namespace }}"
+  connection: local
+  run_once: true
+  kubernetes.core.k8s:
+    name: "{{ ingress_namespace }}"
+    kind: Namespace
+    state: patched
+    definition:
+      metadata:
+        annotations:
+          openshift.io/requester: "system:admin"
+        labels: "{{ ingress_namespace_labels | from_yaml }}"
+    kubeconfig: "{{ ingress_kubeconfig }}"
+  when:
+    - not ingress_shard_delete | bool
+    - ingress_namespace_labels | length > 0
+
+- name: "Create ingress-nginx-admission certificate"
+  connection: local
+  run_once: true
+  kubernetes.core.k8s:
+    name: "ingress-nginx-{{ ingress_shard_name }}-admission"
+    api_version: cert-manager.io/v1
+    kind: Certificate
+    state: present
+    definition:
+      metadata:
+        name: "ingress-nginx-{{ ingress_shard_name }}-admission"
+        namespace: "{{ ingress_namespace }}"
+      spec:
+        duration: 87600h
+        dnsNames:
+          - "ingress-nginx-{{ ingress_shard_name }}-controller-admission"
+          - "ingress-nginx-{{ ingress_shard_name }}-controller-admission.cluster-ingress.svc"
+        secretName: "ingress-nginx-{{ ingress_shard_name }}-admission"
+        privateKey:
+          algorithm: RSA
+        issuerRef:
+          name: "{{ cluster_cluster_issuer_name | default('cld') }}"
+          kind: ClusterIssuer
+          group: cert-manager.io
+    kubeconfig: "{{ ingress_kubeconfig }}"
+  when:
+    - not ingress_shard_delete | bool
+    - cert_manager_enabled | bool
+  notify:
+    - "Deploy nginx ingress"
+
+- name: "Remove ingress-nginx-admission certificate"
+  connection: local
+  run_once: true
+  kubernetes.core.k8s:
+    name: "ingress-nginx-{{ ingress_shard_name }}-admission"
+    api_version: cert-manager.io/v1
+    kind: Certificate
+    state: absent
+    definition:
+      metadata:
+        name: "ingress-nginx-{{ ingress_shard_name }}-admission"
+        namespace: "{{ ingress_namespace }}"
+      spec:
+        duration: 87600h
+        dnsNames:
+          - "ingress-nginx-{{ ingress_shard_name }}-controller-admission"
+          - "ingress-nginx-{{ ingress_shard_name }}-controller-admission.cluster-ingress.svc"
+        secretName: "ingress-nginx-{{ ingress_shard_name }}-admission"
+        privateKey:
+          algorithm: RSA
+        issuerRef:
+          name: "{{ cluster_cluster_issuer_name | default('cld') }}"
+          kind: ClusterIssuer
+          group: cert-manager.io
+    kubeconfig: "{{ ingress_kubeconfig }}"
+  when:
+    - ingress_shard_delete | bool
+    - cert_manager_enabled | bool
+  notify:
+    - "Uninstall nginx ingress chart"
+
+- name: "Import nginx template from file"
+  connection: local
+  run_once: true
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('file', '{{ item }}') | from_yaml }}"
+    kubeconfig: "{{ ingress_kubeconfig }}"
+    namespace: "{{ ingress_namespace }}"
+  with_fileglob:
+    - "./configmaps/*.yaml"
+  when:
+    - not ingress_shard_delete | bool
+
+- name: "Template nginx ingress values"
+  connection: local
+  template:
+    src: ingress-nginx-shard-values.yaml.j2
+    dest: "{{ ingress_config_path }}/ingress-nginx-{{ ingress_shard_name }}-values.yaml"
+    mode: "0755"
+  when: not ingress_shard_delete | bool
+  notify:
+    - "Deploy nginx ingress"
+
+- name: "Force update ingress"
+  connection: local
+  run_once: true
+  ansible.builtin.command:
+    cmd: 'true'
+  notify:
+    - "Deploy nginx ingress"
+  when:
+    - not ingress_shard_delete | bool
+    - ingress_helm_force | bool
+
+- name: "Remove ingress shards"
+  connection: local
+  run_once: true
+  ansible.builtin.command:
+    cmd: 'true'
+  notify:
+    - "Uninstall nginx ingress chart"
+  when:
+    - ingress_shard_delete | bool
+
+- name: "Announce  feature resources"
+  ansible.builtin.import_role:
+    name: common/feature_resources
+  vars:
+    feature_resources:
+      - type: "{{ ingress_shard_name }}"
+        cpu: "{{ ingress_requests_cpu }}"
+        memory: "{{ ingress_requests_memory }}"
+  when: not ingress_shard_delete | bool

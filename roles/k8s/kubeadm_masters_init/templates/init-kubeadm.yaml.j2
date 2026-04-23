@@ -1,0 +1,136 @@
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  ttl: {{ kubeadm_masters_init_token_ttl }}
+  usages:
+  - signing
+  - authentication
+localAPIEndpoint:
+  advertiseAddress: {{ ansible_default_ipv4.address }}
+  bindPort: {{ kubeadm_masters_init_api_port }}
+nodeRegistration:
+  criSocket: {{ kubeadm_masters_init_cri_socket }}
+  name: {{ inventory_hostname }}
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/control-plane
+  ignorePreflightErrors:
+    - ImagePull
+  kubeletExtraArgs:
+    root-dir: /app/kubelet
+patches:
+  directory: /etc/kubernetes/kubeadm/patches
+skipPhases:
+  - addon/kube-proxy
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: {{ kubeadm_masters_init_k8s_version }}
+imageRepository: "{{ kubeadm_masters_init_registry }}"
+apiServer:
+{% if kubeadm_masters_init_apiserver_cert_sans_effective | default([]) | length > 0 %}
+  certSANs:
+{% for san in kubeadm_masters_init_apiserver_cert_sans_effective %}
+  - "{{ san }}"
+{% endfor %}
+{% endif %}
+  timeoutForControlPlane: 4m0s
+  extraArgs:
+    authorization-mode: "Node,RBAC"
+    enable-admission-plugins: "{{ kubeadm_masters_init_enabled_admission_plugins | join(',') }}"
+    event-ttl: 1h0m0s
+{% if kubeadm_masters_init_audit_enabled | bool %}
+    audit-policy-file: "/etc/kubernetes/audit/policy.yaml"
+    audit-log-path: "/var/log/kube-audit/audit.log"
+    audit-log-maxsize: "500"
+    audit-log-maxbackup: "3"
+{% endif %}
+{% if kubeadm_matster_init_oidc_auth_enabled | bool %}
+    oidc-issuer-url: https://auth.apps.{{ kubeadm_masters_init_cluster_name }}.{{ domain_suffix }}
+    oidc-client-id: {{ kubeadm_masters_init_cluster_name }}
+    oidc-username-claim: email
+    oidc-groups-claim: groups
+{% endif %}
+    enable-bootstrap-token-auth: "true"
+{% if kubeadm_masters_init_audit_enabled | bool %}
+  extraVolumes:
+  - name: "audit-policy"
+    hostPath: "{{ kubeadm_masters_init_audit_config }}"
+    mountPath: "/etc/kubernetes/audit/policy.yaml"
+    readOnly: true
+    pathType: File
+  - name: "audit-logs"
+    hostPath: "{{ kubeadm_masters_init_audit_log_directory }}"
+    mountPath: "/var/log/kube-audit"
+    readOnly: false
+    pathType: Directory
+{% endif %}
+certificatesDir: /etc/kubernetes/pki
+clusterName: {{ kubeadm_masters_init_cluster_name }}
+controllerManager:
+  extraArgs:
+{% if monitoring_enabled | default('false') | bool %}
+    bind-address: 0.0.0.0
+{% else %}
+    bind-address: 127.0.0.1
+{% endif %}
+dns:
+  imageRepository: "{{ kubeadm_masters_init_registry }}/coredns"
+etcd:
+  local:
+    dataDir: {{ kubeadm_masters_init_etc_data_dir }}
+{% if kubeadm_masters_init_etcd_extra_args_list | length > 0 %}
+    extraArgs:
+{% for key,value in kubeadm_masters_init_etcd_extra_args_list.items() %}
+      {{ key }}: "{{ value }}"
+{% endfor %}
+{% endif %}
+controlPlaneEndpoint: {{ kubeadm_masters_init_cluster_api_hostname }}
+networking:
+  dnsDomain: cluster.local
+  serviceSubnet: {{ kubeadm_masters_init_service_cidr }}
+  podSubnet: {{kubeadm_masters_init_pod_network_cidr }}
+scheduler:
+  extraArgs:
+{% if monitoring_enabled | default('false') | bool %}
+    bind-address: 0.0.0.0
+{% else %}
+    bind-address: 127.0.0.1
+{% endif %}
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+rotateCertificates: true
+serverTLSBootstrap: true
+podPidsLimit: 65536
+enableServer: true
+readOnlyPort: 0
+staticPodPath: /etc/kubernetes/manifests
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    cacheTTL: 2m0s
+    enabled: true
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.crt
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 5m0s
+    cacheUnauthorizedTTL: 30s
+cgroupRoot: /
+systemCgroups: /system.slice
+systemReserved:
+  cpu: 200m
+  memory: 800Mi
+  ephemeral-storage: 1Gi
+---
+# UpgradeConfiguration for kubeadm upgrade apply (required in K8s 1.34+)
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: UpgradeConfiguration
+apply:
+  kubernetesVersion: {{ kubeadm_masters_init_k8s_version }}

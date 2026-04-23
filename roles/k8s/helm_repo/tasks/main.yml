@@ -1,0 +1,51 @@
+---
+
+- name: Check CA file availability
+  connection: local
+  uri:
+    url: "{{ ca_url }}"
+    method: GET
+    validate_certs: no
+  register: ca_file_response
+  
+- debug:
+    msg: "CA file is accessible"
+  when: ca_file_response.status == 200
+  
+- debug:
+    msg: "CA file is NOT accessible"
+  when: ca_file_response.status != 200
+  
+- debug:
+    var: ca_file_response
+
+- name: create helm config directory
+  connection: local
+  run_once: true
+  ansible.builtin.file:
+    path: "{{ helm_repo_config_dir }}"
+    state: directory
+    mode: 0700
+
+- name: template helm repo config
+  run_once: true
+  connection: local
+  ansible.builtin.template:
+    src: repositories.yaml.j2
+    dest: "{{ helm_repo_config_dir }}/repositories.yaml"
+    mode: "0644"
+  no_log: "{{ helm_repo_no_log }}"
+
+- name: run helm repo update
+  run_once: true
+  connection: local
+  ansible.builtin.command: "{{ helm_repo_bin }} repo update --fail-on-repo-update-fail"
+  environment:
+    HELM_CACHE_HOME: "{{ helm_repo_cache_dir }}"
+    HELM_CONFIG_HOME: "{{ helm_repo_config_dir }}"
+    HELM_DATA_HOME: "{{ helm_repo_data_dir }}"
+  when:
+    - helm_repo_list | length > 0
+  register: helm_repo_update
+  changed_when: helm_repo_list | length > 0
+  failed_when: helm_repo_update.rc > 0

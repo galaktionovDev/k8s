@@ -1,0 +1,7 @@
+# {{ ansible_managed }}
+# netrc format
+{% for line in set_repositories_auth_keys %}
+machine {{ line.host }}
+login {{ line.login }}
+password {{ line.password }}
+{% endfor %}

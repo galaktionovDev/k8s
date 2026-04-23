@@ -1,0 +1,10 @@
+---
+- name: loop over csr approve
+  include_tasks:
+    file: approve.yml
+  loop:
+    - 1
+    - 2
+    - 3
+  loop_control:
+    loop_var: count

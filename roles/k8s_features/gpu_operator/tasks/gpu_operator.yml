@@ -1,0 +1,16 @@
+---
+- name: Template gpu-operator helm values
+  connection: local
+  become: "{{ gpu_operator_become }}"
+  ansible.builtin.template:
+    src: gpu-operator-values.yaml.j2
+    dest: "{{ gpu_operator_config_path }}/gpu-operator-values.yaml"
+    mode: "0755"
+  notify: Deploy {{ gpu_operator_name }}
+
+- name: Force update gpu-operator
+  run_once: true
+  ansible.builtin.command:
+    cmd: 'true'
+  when: gpu_operator_helm_force | bool
+  notify: Deploy {{ gpu_operator_name }}

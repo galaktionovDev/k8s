@@ -1,0 +1,27 @@
+{{ set_journald_ansible_managed }}
+[Journal]
+Storage={{ set_journald_storage_option }}
+Compress={{ set_journald_compress_option }}
+Seal={{ set_journald_seal_option }}
+SplitMode={{ set_journald_splitmode }}
+SyncIntervalSec={{ set_journald_sync_interval }}
+RateLimitInterval={{ set_journald_rate_limit_interval }}
+RateLimitBurst={{ set_journald_rate_limit_burst }}
+SystemMaxUse={{ set_journald_system_max_use }}
+SystemKeepFree={{ set_journald_system_keep_free }}
+SystemMaxFileSize={{ set_journald_max_file_size }}
+RuntimeMaxUse={{ set_journald_runtime_max_use }}
+RuntimeKeepFree={{ set_journald_runtime_keep_free }}
+RuntimeMaxFileSize={{ set_journald_runtime_max_file_size }}
+MaxRetentionSec={{ set_journald_max_retention_sec }}
+MaxFileSec={{ set_journald_max_file_sec }}
+ForwardToSyslog={{ set_journald_forward_to_syslog }}
+ForwardToKMsg={{ set_journald_forward_to_kmsg }}
+ForwardToConsole={{ set_journald_forward_to_console }}
+ForwardToWall={{ set_journald_forward_to_wall }}
+TTYPath={{ set_journald_tty_path }}
+MaxLevelStore={{ set_journald_max_level_store }}
+MaxLevelSyslog={{ set_journald_max_level_syslog }}
+MaxLevelKMsg={{ set_journald_max_level_kmsg }}
+MaxLevelConsole={{ set_journald_max_level_console }}
+MaxLevelWall={{ set_journald_max_level_wall }}

@@ -1,0 +1,11 @@
+---
+# Cluster API VIP/FQDN for HA control plane.
+# If empty, endpoint is resolved from first host in load_balancers group, then first master IP.
+cluster_api_vip: ""
+cluster_api_vip_fqdn: ""
+
+# Enable LB play on load balancer nodes (override to true in load_balancers vars)
+cluster_lb_enabled: false
+
+# Enable VIP failover on LB nodes (keepalived)
+cluster_lb_vip_enabled: false

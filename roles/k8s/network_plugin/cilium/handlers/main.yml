@@ -1,0 +1,66 @@
+---
+- name: "helm upgrade cilium minimal"
+  connection: local
+  become: "{{ cilium_become }}"
+  run_once: true
+  kubernetes.core.helm:
+    state: present
+    name: cilium
+    kubeconfig: "{{ cilium_kubeconfig }}"
+    binary_path: "{{ cilium_helm_bin_path }}"
+    chart_version: "{{ cilium_helm_chart_version }}"
+    values_files: "{{ cilium_config_path }}/cilium_minimal_values.yaml"
+    chart_ref: "{{ cilium_helm_repo }}/cilium"
+    update_repo_cache: true
+    history_max: 3
+    namespace: "{{ cilium_namespace }}"
+    atomic: "{{ not cilium_helm_debug }}"
+    wait: "{{ cilium_helm_wait }}"
+    wait_timeout: "{{ cilium_helm_wait_timeout }}"
+  notify:
+    - wait cilium CRD
+  environment:
+    HELM_CONFIG_HOME: "{{ cilium_helm_repo_config_dir }}"
+    HELM_CACHE_HOME: "{{ cilium_helm_repo_cache_dir }}"
+    HELM_DATA_HOME: "{{ cilium_helm_repo_data_dir }}"
+
+- name: "helm upgrade cilium with features"
+  connection: local
+  become: "{{ cilium_become }}"
+  run_once: true
+  kubernetes.core.helm:
+    state: present
+    name: cilium
+    kubeconfig: "{{ cilium_kubeconfig }}"
+    binary_path: "{{ cilium_helm_bin_path }}"
+    chart_version: "{{ cilium_helm_chart_version }}"
+    values_files: "{{ cilium_config_path }}/cilium_features_values.yaml"
+    chart_ref: "{{ cilium_helm_repo }}/cilium"
+    update_repo_cache: true
+    history_max: 3
+    namespace: "{{ cilium_namespace }}"
+    atomic: "{{ not cilium_helm_debug }}"
+    wait: "{{ cilium_helm_wait }}"
+    wait_timeout: "{{ cilium_helm_wait_timeout }}"
+  notify:
+    - wait cilium CRD
+  environment:
+    HELM_CONFIG_HOME: "{{ cilium_helm_repo_config_dir }}"
+    HELM_CACHE_HOME: "{{ cilium_helm_repo_cache_dir }}"
+    HELM_DATA_HOME: "{{ cilium_helm_repo_data_dir }}"
+
+- name: wait cilium CRD
+  connection: local
+  become: "{{ cilium_become }}"
+  run_once: true
+  kubernetes.core.k8s_info:
+    kind: CustomResourceDefinition
+    api_version: apiextensions.k8s.io/v1
+    kubeconfig: "{{ cilium_kubeconfig }}"
+  register: cilium_crd
+  retries: 10
+  delay: 5
+  until: |
+    cilium_crd.resources | selectattr('metadata.name', 'match', 'cilium') | list |
+    map(attribute='metadata.name')| list | length > 6
+  changed_when: true

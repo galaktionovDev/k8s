@@ -1,0 +1,52 @@
+global
+  log /dev/log local0
+  log /dev/log local1 notice
+  daemon
+  maxconn {{ haproxy_maxconn }}
+
+defaults
+  log global
+  mode tcp
+  option tcplog
+  option dontlognull
+  timeout connect {{ haproxy_timeout_connect }}
+  timeout client  {{ haproxy_timeout_client }}
+  timeout server  {{ haproxy_timeout_server }}
+  retries {{ haproxy_retries }}
+
+{% for frontend in haproxy_frontends_effective | select('mapping') | list %}
+{% set frontend_name = frontend.get('name', haproxy_default_frontend_name) %}
+{% set frontend_port = frontend.get('port', haproxy_bind_port) %}
+{% set frontend_backend = frontend.get('backend', haproxy_default_backend_name) %}
+frontend {{ frontend_name }}
+  bind {{ haproxy_bind_address }}:{{ frontend_port }}
+  mode tcp
+  option tcplog
+  default_backend {{ frontend_backend }}
+{% endfor %}
+
+{% for backend in haproxy_backends_effective | select('mapping') | list %}
+{% set backend_name = backend.get('name', haproxy_default_backend_name) %}
+{% set backend_port = backend.get('port', haproxy_backend_port) %}
+{% set backend_servers = backend.get('servers', []) %}
+{% if backend_servers is string or backend_servers is not sequence %}
+{% set backend_servers = [] %}
+{% endif %}
+backend {{ backend_name }}
+  mode tcp
+  option tcp-check
+  balance roundrobin
+  default-server inter {{ haproxy_check_interval }} fall {{ haproxy_check_fall }} rise {{ haproxy_check_rise }}
+{% for server in backend_servers %}
+{% if server is mapping %}
+{% set server_name = server.get('name', backend_name ~ '-' ~ '%02d' | format(loop.index)) %}
+{% set server_address = server.get('address', '') %}
+{% set server_port = server.get('port', backend_port) %}
+{% if server_address | length > 0 %}
+  server {{ server_name }} {{ server_address }}:{{ server_port }} check
+{% endif %}
+{% elif server is string %}
+  server {{ backend_name }}-{{ '%02d' | format(loop.index) }} {{ server }}:{{ backend_port }} check
+{% endif %}
+{% endfor %}
+{% endfor %}

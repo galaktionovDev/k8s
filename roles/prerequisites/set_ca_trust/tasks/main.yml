@@ -1,0 +1,5 @@
+---
+
+- name: "set_ca_trust | Add CA bundles to trust"
+  import_tasks: set-ca-trust.yml
+  when: set_ca_trust | bool

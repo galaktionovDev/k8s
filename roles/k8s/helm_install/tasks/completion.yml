@@ -1,0 +1,30 @@
+---
+- name: Get helm completion source
+  connection: local
+  ansible.builtin.command:
+    cmd: "helm completion bash"
+  register: helm_completion_source
+  changed_when: false
+
+- name: Create bash_completion directories
+  connection: local
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+    state: directory
+  loop:
+    - /etc/bash_completion.d
+
+- name: Template bash auto completion file
+  connection: local
+  ansible.builtin.copy:
+    content: "{{ helm_completion_source.stdout }}"
+    dest: /etc/bash_completion.d/helm
+    mode: "0755"
+    owner: root
+    group: root
+  when:
+    - helm_completion_source is defined
+    - helm_completion_source.stdout is defined

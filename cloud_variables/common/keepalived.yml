@@ -1,0 +1,8 @@
+---
+# Keepalived defaults (used only when cluster_lb_vip_enabled=true)
+keepalived_interface: ""
+keepalived_virtual_router_id: 51
+keepalived_vip_cidr: ""
+keepalived_auth_type: "PASS"
+keepalived_auth_pass: "k8s"
+keepalived_use_unicast: true

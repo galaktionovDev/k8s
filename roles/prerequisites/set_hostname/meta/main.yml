@@ -1,0 +1,14 @@
+---
+
+galaxy_info:
+  author: EG
+  description: "Настраивает hostname на хосте"
+  min_ansible_version: '2.9'
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal 
+        - noble
+  license: MIT
+  galaxy_tags: []
+dependencies: []

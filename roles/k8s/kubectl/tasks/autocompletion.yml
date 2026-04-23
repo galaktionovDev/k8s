@@ -1,0 +1,33 @@
+---
+- name: install kubectl auto-completion addition packages
+  ansible.builtin.apt:
+    name: "{{ kubectl_auto_completion_addition_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 60
+
+- name: create bash_completion directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+    state: directory
+  loop:
+    - /etc/bash_completion.d
+
+- name: get kubectl auto-completion
+  ansible.builtin.command:
+    cmd: kubectl completion bash
+  register: kubectl_completion_source
+  changed_when: false
+
+- name: set kubectl auto-completion file
+  ansible.builtin.copy:
+    content: "{{ kubectl_completion_source.stdout }}"
+    dest: "{{ kubectl_auto_completion_path }}"
+    mode: "0755"
+    owner: root
+    group: root
+  when:
+    - kubectl_completion_source is defined

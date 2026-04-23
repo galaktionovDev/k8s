@@ -1,0 +1,23 @@
+---
+- name: Deploy {{ gpu_operator_name }}
+  connection: local
+  become: "{{ gpu_operator_become }}"
+  run_once: true
+  kubernetes.core.helm:
+    name: "{{ gpu_operator_name }}"
+    namespace: "{{ gpu_operator_namespace }}"
+    chart_ref: "{{ gpu_operator_helm_repo }}/{{ gpu_operator_name }}"
+    chart_version: "{{ gpu_operator_chart_version }}"
+    values_files: "{{ gpu_operator_config_path }}/gpu-operator-values.yaml"
+    create_namespace: true
+    atomic: "{{ gpu_operator_helm_atomic | default(not gpu_operator_debug) }}"
+    wait: "{{ gpu_operator_helm_wait | default(not gpu_operator_debug) }}"
+    update_repo_cache: true
+    wait_timeout: 600s
+    binary_path: "{{ gpu_operator_helm_bin }}"
+    kubeconfig: "{{ gpu_operator_kubeconfig }}"
+  no_log: "{{ gpu_operator_no_log }}"
+  environment:
+    HELM_CONFIG_HOME: "{{ gpu_operator_helm_repo_config_dir }}"
+    HELM_CACHE_HOME: "{{ gpu_operator_helm_repo_cache_dir }}"
+    HELM_DATA_HOME: "{{ gpu_operator_helm_repo_data_dir }}"

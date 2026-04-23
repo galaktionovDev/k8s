@@ -1,0 +1,12 @@
+---
+- name: import apt install
+  vars:
+    apt_install:
+      - "kubectl={{ kubectl_version }}"
+  ansible.builtin.import_role:
+    name: common/apt_install
+
+- name: include kubectl auto-completion
+  ansible.builtin.import_tasks: autocompletion.yml
+  when:
+    - kubectl_auto_completion | bool

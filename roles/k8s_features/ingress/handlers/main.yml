@@ -1,0 +1,46 @@
+---
+
+- name: "Deploy nginx ingress"
+  connection: local
+  run_once: true
+  kubernetes.core.helm:
+    name: "ingress-nginx-{{ item }}"
+    namespace: "{{ ingress_namespace }}"
+    chart_ref: "{{ ingress_helm_repo }}/{{ ingress_chart_name }}"
+    chart_version: "{{ ingress_chart_version }}"
+    values_files: "{{ ingress_config_path }}/ingress-nginx-{{ item }}-values.yaml"
+    atomic: "{{ not ingress_debug }}"
+    wait: "{{ not ingress_debug }}"
+    update_repo_cache: true
+    wait_timeout: 300s
+    history_max: 3
+    binary_path: "{{ ingress_helm_bin }}"
+    kubeconfig: "{{ ingress_kubeconfig }}"
+
+    state: present
+  environment:
+    HELM_CONFIG_HOME: "{{ ingress_helm_repo_config_dir }}"
+    HELM_CACHE_HOME: "{{ ingress_helm_repo_cache_dir }}"
+    HELM_DATA_HOME: "{{ ingress_helm_repo_data_dir }}"
+  no_log: "{{ ingress_no_log }}"
+  with_items:
+    - "{{ ingress_shard_name }}"
+
+- name: "Uninstall nginx ingress chart"
+  connection: local
+  run_once: true
+  kubernetes.core.helm:
+    name: "ingress-nginx-{{ item }}"
+    namespace: "{{ ingress_namespace }}"
+    chart_ref: "{{ ingress_helm_repo }}/{{ ingress_chart_name }}"
+    chart_version: "{{ ingress_chart_version }}"
+    binary_path: "{{ ingress_helm_bin }}"
+    kubeconfig: "{{ ingress_kubeconfig }}"
+    state: absent
+  environment:
+    HELM_CONFIG_HOME: "{{ ingress_helm_repo_config_dir }}"
+    HELM_CACHE_HOME: "{{ ingress_helm_repo_cache_dir }}"
+    HELM_DATA_HOME: "{{ ingress_helm_repo_data_dir }}"
+  no_log: "{{ ingress_no_log }}"
+  with_items:
+    - "{{ ingress_shard_name }}"

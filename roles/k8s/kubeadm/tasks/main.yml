@@ -1,0 +1,7 @@
+---
+- name: "Import apt install"
+  vars:
+    apt_install:
+      - "kubeadm={{ kubeadm_version }}"
+  ansible.builtin.import_role:
+    name: common/apt_install

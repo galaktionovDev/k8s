@@ -1,0 +1,23 @@
+---
+- hosts: all
+  gather_facts: false
+  run_once: true
+  connection: local
+  tags:
+    - get_ca_trust
+  roles:
+    - prerequisites/get_ca_trust
+
+- hosts: all
+  gather_facts: true
+  become: true
+  tags:
+    - prerequisites
+  roles:
+    - prerequisites/set_hostname
+    - prerequisites/set_dns
+    - prerequisites/set_ca_trust
+    - prerequisites/set_journald
+    - prerequisites/set_repositories
+    - prerequisites/set_sysctl
+    - prerequisites/set_packages

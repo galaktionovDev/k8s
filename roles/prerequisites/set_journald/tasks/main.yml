@@ -1,0 +1,4 @@
+---
+- name: "set_journald"
+  import_tasks: set-journald.yml
+  when: set_journald | bool

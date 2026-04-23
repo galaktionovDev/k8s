@@ -1,0 +1,28 @@
+---
+- name: ensure apt preferences are configured
+  template:
+    src: etc/apt/preferences.d/package_name.j2
+    dest: "/etc/apt/preferences.d/ansible-{{ apt_install_preference_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    apt_install_package_splitted: "{{ item.split('=') }}"
+    apt_install_package_name: "{{ apt_install_package_splitted[0] }}"
+    apt_install_package_version: "{{ apt_install_package_splitted[1] | default(None) }}"
+    apt_install_preference_file: "{{ apt_install_package_name | replace('.', '-') }}"
+  loop: "{{ apt_install }}"
+
+- name: >-
+    ensure required packages are installed:
+    {{ apt_install | join(', ') if apt_install else '[empty list of packages]' }}
+  ansible.builtin.apt:
+    name: "{{ apt_install }}"
+    update_cache: true
+    cache_valid_time: "{{ apt_install_cache_valid_time }}"
+    force: "{{ apt_install_force }}"
+    state: "{{ apt_install_state }}"
+    purge: "{{ apt_install_purge }}"
+  when:
+    - not ansible_check_mode
+    - apt_install | length > 0

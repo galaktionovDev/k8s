@@ -1,0 +1,36 @@
+---
+- name: Create directory
+  file:
+    path: "{{ cert_manager_kubectl_plugin_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    state: directory
+
+- name: Download kubectl cert-manager plugin tar.gz
+  get_url:
+    url: "{{ cert_manager_kubectl_plugin_url }}/{{ cert_manager_kubectl_plugin_filename }}"
+    dest: "{{ cert_manager_kubectl_plugin_path }}"
+    owner: root
+    group: root
+    mode: 0600
+    url_username: "{{ cert_manager_kubectl_plugin_username | default(omit) }}"
+    url_password: "{{ cert_manager_kubectl_plugin_password | default(omit) }}"
+  environment:
+    http_proxy: "{{ cert_manager_kubectl_plugin_http_proxy }}"
+    https_proxy: "{{ cert_manager_kubectl_plugin_http_proxy }}"
+
+- name: Unarchive cert-manager plugin tar.gz
+  unarchive:
+    src: "{{ cert_manager_kubectl_plugin_path }}/{{ cert_manager_kubectl_plugin_filename }}"
+    dest: "{{ cert_manager_kubectl_plugin_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+
+- name: Link kubectl cert-manager plugin binary
+  file:
+    src: "{{ cert_manager_kubectl_plugin_path }}/kubectl-cert_manager"
+    dest: "/usr/local/bin/kubectl-cert_manager"
+    state: link

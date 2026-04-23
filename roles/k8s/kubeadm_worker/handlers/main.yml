@@ -1,0 +1,39 @@
+---
+- name: kubeadm upgrade node
+  throttle: 1
+  ansible.builtin.command:
+    cmd: "kubeadm upgrade node"
+  when:
+    - not ( kubeadm_worker_join.changed | bool )
+  notify:
+    - wait nodes ready
+
+- name: wait nodes ready
+  connection: local
+  become: "{{ kubeadm_worker_become }}"
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Node
+    name: "{{ inventory_hostname }}"
+    kubeconfig: "{{ kubeadm_worker_kubeconfig }}"
+  register: kubeadm_worker_nodes_status
+  retries: 30
+  delay: 10
+  until: |
+    kubeadm_worker_nodes_status.resources.0.status.conditions | selectattr('type', 'equalto', 'Ready') |
+    flatten | rejectattr('status', 'equalto', 'True') | list | length == 0
+
+# Get from kube-api node yaml and select status.conditions.
+# Then select from list of conditions where filed 'type' equal Ready.
+# Then delete whole list object where filed status equal True and count length
+#  worker-1 - Not Ready
+#   {
+#       "lastHeartbeatTime": "2022-03-25T12:18:34Z",
+#       "lastTransitionTime": "2022-03-25T12:20:49Z",
+#       "message": "Kubelet stopped posting node status.",
+#       "reason": "NodeStatusUnknown",
+#       "status": "Unknown",
+#       "type": "Ready"
+#   }
+# worker-2 Ready
+#   []

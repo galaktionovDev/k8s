@@ -1,0 +1,41 @@
+---
+#  https://github.com/helm/helm/issues/5540
+- name: Download plugin archive
+  connection: local
+  ansible.builtin.get_url:
+    url: "{{ helm_diff_url }}/{{ helm_diff_filename }}"
+    dest: "{{ helm_path }}/helm-{{ helm_version }}/plugins"
+    owner: root
+    group: root
+    mode: 0600
+    headers: "{{ helm_diff_url_headers }}"
+  no_log: "{{ cluster_no_log | default('true') }}"
+  environment:
+    http_proxy: "{{ helm_install_proxy }}"
+    https_proxy: "{{ helm_install_proxy }}"
+
+- name: Create helm diff directory
+  connection: local
+  ansible.builtin.file:
+    path: /root/.local/share/helm/plugins
+    owner: root
+    group: root
+    mode: "0755"
+    state: directory
+
+- name: Unarchive helm plugin diff
+  connection: local
+  ansible.builtin.unarchive:
+    src: "{{ helm_path }}/helm-{{ helm_version }}/plugins/{{ helm_diff_filename }}"
+    dest: "{{ helm_path }}/helm-{{ helm_version }}/plugins"
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+
+- name: Link helm diff binary
+  connection: local
+  ansible.builtin.file:
+    src: "{{ helm_path }}/helm-{{ helm_version }}/plugins/diff"
+    dest: /root/.local/share/helm/plugins/helm-diff
+    state: link

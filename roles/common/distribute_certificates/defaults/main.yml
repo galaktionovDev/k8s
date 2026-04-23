@@ -1,0 +1,18 @@
+---
+distribute_certificates_root_ca: "{{ cluster_certificates_root_ca | default('cluster-root-ca') }}"
+distribute_certificates_namespace: "{{ cluster_certificates_namespace | default('cluster-cert-manager') }}"
+distribute_certificates_source: cert-manager
+distribute_certificates_cluster_name: "{{ cluster_name }}"
+
+distribute_certificates_api_fqdn: "{{ cluster_api_fqdn }}"
+distribute_certificates_api_port: 6443
+distribute_certificates_kubeconfig: "{{ cluster_kubeconfig | default('/etc/kubernetes/admin.conf') }}"
+
+distribute_certificates_vault_portal_url: "{{ cluster_vault_portal_url | default('') }}"
+distribute_certificates_vault_portal_path: "{{ cluster_vault_portal_path | default('') }}"
+distribute_certificates_vault_portal_kv: "{{ cluster_vault_portal_kv | default('') }}"
+distribute_certificates_vault_portal_role_id: "{{ cluster_vault_portal_role_id | default('') }}"
+distribute_certificates_vault_portal_secret_id: "{{ cluster_vault_portal_secret_id | default('') }}"
+
+distribute_certificates_no_log: "{{ cluster_no_log | default('true') }}"
+distribute_certificates_become: "{{ cluster_become | default('true') }}"

@@ -1,0 +1,18 @@
+---
+node_labels_ingress: |-
+  {% set labels = dict() %}
+  {% set _ = labels.update({"node-role.kubernetes.io/" + ingress_shard_name | default("ingress"): ""}) %}
+  {{ labels }}
+
+node_labels_infra:
+  node-role.kubernetes.io/infra: ""
+
+node_labels: "{{ node_labels_ingress | combine(node_labels_infra, recursive=true) }}"
+
+pull_images_list:
+  - cluster.mirror/kube-apiserver:v1.34.3
+  - cluster.mirror/kube-controller-manager:v1.34.3
+  - cluster.mirror/kube-scheduler:v1.34.3
+  - cluster.mirror/pause:3.10.1
+  - cluster.mirror/etcd:3.6.5-0
+  - cluster.mirror/coredns/coredns:v1.12.1

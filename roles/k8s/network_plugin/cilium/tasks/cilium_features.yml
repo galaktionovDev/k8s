@@ -1,0 +1,66 @@
+---
+
+- name: "Issue certificate {{ cilium_hubble_external_hostname }} for hubble via itcacmcpl"
+  connection: local
+  become: "{{ cilium_become }}"
+  run_once: true
+  kubernetes.core.k8s:
+    name: "{{ cilium_hubble_external_hostname }}-tls"
+    kind: AutoCertificate
+    api_version: acm.clearwayintegration.com/v1beta1
+    namespace: "{{ cilium_namespace }}"
+    state: present
+    wait: true
+    definition:
+      spec:
+        apdCode: "00.99"
+        risCode: cube
+        risId: "1484"
+        appName: k8s-hubble
+        certificateSecret: "{{ cilium_hubble_external_hostname }}-tls"
+        certificateFile: tls.crt
+        caFile: ca.crt
+        hosts:
+          - "{{ cilium_hubble_external_hostname }}"
+        renew: true
+        duration: "{{ cillium_itcacmcpl_cert_duration }}"
+    kubeconfig: "{{ cilium_kubeconfig }}"
+  when:
+    - cillium_use_itcacmcpl | bool
+    - cilium_hubble_enabled | bool
+
+- name: get an existing certificate for hubble exist
+  connection: local
+  become: "{{ cilium_become }}"
+  run_once: true
+  kubernetes.core.k8s_info:
+    kind: Secret
+    name: "{{ cilium_hubble_external_hostname }}-tls"
+    kubeconfig: "{{ cilium_kubeconfig }}"
+    namespace: "{{ cilium_namespace }}"
+  register: cillium_hubble_secret
+  retries: 10
+  delay: 10
+  until: cillium_hubble_secret.resources | length > 0
+  when:
+    - cillium_use_itcacmcpl | bool
+    - cilium_hubble_enabled | bool
+
+- name: template cilium values with features
+  connection: local
+  become: "{{ cilium_become }}"
+  ansible.builtin.template:
+    src: cilium_features_values.yaml.j2
+    dest: "{{ cilium_config_path }}/cilium_features_values.yaml"
+    mode: "0755"
+  notify:
+    - helm upgrade cilium with features
+
+- name: force update cilium with features
+  run_once: true
+  ansible.builtin.command:
+    cmd: 'true'
+  notify:
+    - helm upgrade cilium with features
+  when:
+    - cilium_helm_force | bool

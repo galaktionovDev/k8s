@@ -1,0 +1,16 @@
+---
+- name: Template cert-manager helm values
+  connection: local
+  become: "{{ cert_manager_become }}"
+  ansible.builtin.template:
+    src: cert-manager-values.yaml.j2
+    dest: "{{ cert_manager_config_path }}/cert-manager-values.yaml"
+    mode: "0755"
+  notify: Deploy {{ cert_manager_name }}
+
+- name: Force update cert-manager
+  run_once: true
+  ansible.builtin.command:
+    cmd: 'true'
+  when: cert_manager_helm_force | bool
+  notify: Deploy {{ cert_manager_name }}

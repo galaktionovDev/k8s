@@ -1,0 +1,15 @@
+---
+- hosts: all
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Validate control plane endpoint selection
+      ansible.builtin.assert:
+        that:
+          - (groups.get('load_balancers', []) | length) <= 1
+            or (cluster_api_vip | default('', true) | length > 0)
+            or (cluster_api_vip_fqdn | default('', true) | length > 0)
+        fail_msg: >-
+          Multiple load_balancers detected but cluster_api_vip/cluster_api_vip_fqdn is empty.
+          Set VIP/FQDN to avoid ambiguous control plane endpoint.
+      run_once: true

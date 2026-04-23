@@ -1,0 +1,33 @@
+---
+- name: Prepare Namespace {{ gpu_operator_namespace }}
+  run_once: true
+  import_tasks: namespace.yml
+  when: gpu_operator_enabled | bool
+
+- name: Create directory {{ gpu_operator_config_path }}
+  connection: local
+  become: "{{ gpu_operator_become }}"
+  ansible.builtin.file:
+    path: "{{ gpu_operator_config_path }}"
+    mode: "0755"
+    state: directory
+  when: gpu_operator_enabled | bool
+
+- name: Install {{ gpu_operator_name }}
+  import_tasks: gpu_operator.yml
+  when: gpu_operator_enabled | bool
+
+- name: Flush GPU Operator deploy handlers
+  ansible.builtin.meta: flush_handlers
+  when: gpu_operator_enabled | bool
+
+
+- name: announce feature resources
+  ansible.builtin.import_role:
+    name: common/feature_resources
+  vars:
+    feature_resources:
+      - type: infra
+        cpu: "{{ gpu_operator_operator_requests_cpu }}"
+        memory: "{{ gpu_operator_operator_requests_memory }}"
+  when: gpu_operator_enabled | bool

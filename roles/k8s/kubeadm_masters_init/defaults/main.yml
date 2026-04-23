@@ -1,0 +1,49 @@
+---
+kubeadm_masters_init_cluster_name: "{{ cluster_name }}"
+kubeadm_masters_init_cluster_api_hostname: "{{ cluster_api_fqdn | default('api-int.{{ cluster_name }}.{{ domain_suffix }}') }}"
+kubeadm_masters_init_auth_fqdn: "{{ cluster_auth_fqdn | default('auth.apps.{{ cluster_name }}.{{ domain_suffix }}') }}"
+kubeadm_masters_init_k8s_version: "{{ k8s_version | default('1.22.7') }}"
+kubeadm_masters_init_api_port: "6443"
+kubeadm_masters_init_cri_socket: "{{ cr_socket }}"
+kubeadm_masters_init_pod_network_cidr: "10.244.0.0/16"
+kubeadm_masters_init_service_cidr: "10.96.0.0/16"
+kubeadm_masters_init_token_ttl: "1h"
+kubeadm_masters_init_no_log: "{{ cluster_no_log | default('true') }}"
+kubeadm_masters_init_etc_data_dir: /app/etcd
+kubeadm_masters_init_kubeadm_tmp_dir: /app/kubeadm-tmp
+kubeadm_masters_init_enabled_admission_plugins:
+  - NodeRestriction
+  - PodNodeSelector
+
+kubeadm_matster_init_oidc_auth_enabled: "{{ oidc_auth_enabled | default(false) }}"
+
+kubeadm_masters_init_etcd_extra_args_list:
+  snapshot-count: 100000
+  quota-backend-bytes: 7516192768
+
+kubeadm_masters_init_vault_portal_url: "{{ cluster_vault_portal_url | default('') }}"
+kubeadm_masters_init_vault_portal_role_id: "{{ cluster_vault_portal_role_id | default('') }}"
+kubeadm_masters_init_vault_portal_secret_id: "{{ cluster_vault_portal_secret_id | default('') }}"
+kubeadm_masters_init_vault_portal_path: "{{ cluster_vault_portal_path | default('') }}"
+kubeadm_masters_init_vault_portal_kv: "{{ cluster_vault_portal_kv | default('') }}"
+kubeadm_masters_init_become: "{{ cluster_become | default('true') }}"
+kubeadm_masters_init_kubeconfig: |-
+  {{ cluster_kubeconfig | default(playbook_dir + '/cluster_config/' + cluster_name + '/cluster-kubeconfig.yaml') }}
+
+kubeadm_masters_init_audit_enabled: false
+kubeadm_masters_init_audit_version: "v1.0.0"
+kubeadm_masters_init_audit_config: "/etc/kubernetes/audit-{{ kubeadm_masters_init_audit_version }}.yaml"
+kubeadm_masters_init_audit_log_directory: /var/log/kube-audit
+
+kubeadm_masters_init_registry: "{{ cluster_registry | default('k8s.gcr.io') }}"
+
+kubeadm_masters_init_masters_group_name: masters
+kubeadm_masters_init_coredns_nodeselectors:
+  kubernetes.io/os: linux
+kubeadm_masters_init_apiserver_cert_sans: []
+
+# coredns upstream dns servers (override in group_vars for corporate environment)
+coredns_upstream_dns:
+  - 10.16.4.15
+  - 10.16.4.16
+coredns_cache_ttl: 30

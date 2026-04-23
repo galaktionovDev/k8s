@@ -1,0 +1,65 @@
+---
+
+- hosts: masters
+  gather_facts: false
+  become: true
+  tags:
+    - features
+    - cert-manager
+  roles:
+    - k8s_features/cert_manager
+
+- hosts: masters
+  gather_facts: false
+  become: "{{ cluster_become }}"
+  tags:
+    - features
+    - cert-manager
+    - certs
+  roles:
+    - common/create_certificates
+
+- hosts: masters
+  gather_facts: false
+  become: true
+  serial:
+    - 1
+    - 100%
+  tags:
+    - features
+    - cert-manager
+    - certs
+    - api
+  roles:
+    - common/distribute_certificates
+
+- hosts: ingress
+  serial: 1
+  gather_facts: false
+  become: "{{ cluster_become }}"
+  roles:
+    - name: k8s_features/ingress
+  tags:
+    - ingress
+
+- hosts: masters
+  gather_facts: false
+  become: "{{ cluster_become }}"
+  tags:
+    - kubemetrics
+    - features
+  roles:
+    - k8s_features/kubernetes_metrics
+
+- hosts: masters
+  gather_facts: false
+  become: true
+  tags:
+    - features
+    - gpu-operator
+  roles:
+    - role: k8s_features/gpu_operator
+      when:
+        - worker_gpu_type is defined
+        - worker_gpu_type != "none"
+

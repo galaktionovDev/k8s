@@ -1,0 +1,27 @@
+---
+create_certificates_root_ca: "{{ cluster_certificates_root_ca | default('cluster-root-ca') }}"
+create_certificates_root_ca_cn: ORG K8S Root CA
+create_certificates_root_ca_duration: "87600h"
+create_certificates_root_ca_renew_befor: "720h"
+create_certificates_intermediate_ca: cluster-inter-ca
+create_certificates_intermediate_ca_cn: ORG K8S Intermidiate CA
+create_certificates_intermediate_ca_duration: "17520h"
+create_certificates_intermediate_ca_renew_befor: "720h"
+create_certificates_email: "cloud@mail"
+create_certificates_organizations:
+  - ORG
+create_certificates_countries:
+  - RU
+create_certificates_organizational_units:
+  - k8s
+create_certificates_localities:
+  - Moscow
+create_certificates_provinces:
+  - Moscow
+create_certificates_algorithm: RSA
+
+create_certificates_cluster_name: "{{ cluster_name }}"
+create_certificates_cluster_issuer_name: "{{ cluster_cluster_issuer_name  | default('cloud') }}"
+create_certificates_root_ca_sync_label: "{{ cluster_certificates_root_ca | default('cluster-root-ca') }}"
+create_certificates_namespace: "{{ cluster_certificates_namespace | default('cluster-cert-manager') }}"
+create_certificates_kubeconfig: "{{ cluster_kubeconfig | default('/etc/kubernetes/admin.conf') }}"

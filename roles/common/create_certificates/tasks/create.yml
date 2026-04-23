@@ -1,0 +1,126 @@
+---
+- name: Create selfsigned ClusterIssuer {{ create_certificates_root_ca }}
+  connection: local
+  kubernetes.core.k8s:
+    name: "{{ create_certificates_root_ca }}"
+    api_version: cert-manager.io/v1
+    kind: ClusterIssuer
+    state: present
+    definition:
+      spec:
+        selfSigned: {}
+    kubeconfig: "{{ create_certificates_kubeconfig }}"
+
+- name: Create selfsigned CA Certificate
+  connection: local
+  kubernetes.core.k8s:
+    name: "{{ create_certificates_root_ca }}"
+    api_version: cert-manager.io/v1
+    kind: Certificate
+    state: present
+    definition:
+      metadata:
+        namespace: "{{ create_certificates_namespace }}"
+      spec:
+        isCA: true
+        duration: "{{ create_certificates_root_ca_duration }}"
+        renewBefore: "{{ create_certificates_root_ca_renew_befor }}"
+        commonName: "{{ create_certificates_root_ca_cn }}"
+        emailAddresses:
+          - "{{ create_certificates_email }}"
+        subject:
+          organizations: "{{ create_certificates_organizations }}"
+          countries: "{{ create_certificates_countries }}"
+          organizationalUnits: "{{ create_certificates_organizational_units }}"
+          localities: "{{ create_certificates_localities }}"
+          provinces: "{{ create_certificates_provinces }}"
+        secretName: "{{ create_certificates_root_ca }}"
+        usages:
+          - cert sign
+          - crl sign
+        privateKey:
+          algorithm: "{{ create_certificates_algorithm }}"
+        issuerRef:
+          name: "{{ create_certificates_root_ca }}"
+          kind: ClusterIssuer
+          group: cert-manager.io
+    kubeconfig: "{{ create_certificates_kubeconfig }}"
+
+- name: Create ClusterIssuer {{ create_certificates_intermediate_ca }} signed by {{ create_certificates_root_ca }}
+  connection: local
+  kubernetes.core.k8s:
+    name: "{{ create_certificates_intermediate_ca }}"
+    api_version: cert-manager.io/v1
+    kind: ClusterIssuer
+    state: present
+    definition:
+      spec:
+        ca:
+          secretName: "{{ create_certificates_root_ca }}"
+    kubeconfig: "{{ create_certificates_kubeconfig }}"
+
+- name: Create intermidiate CA Certificate
+  connection: local
+  kubernetes.core.k8s:
+    name: "{{ create_certificates_intermediate_ca }}"
+    api_version: cert-manager.io/v1
+    kind: Certificate
+    state: present
+    definition:
+      metadata:
+        namespace: "{{ create_certificates_namespace }}"
+      spec:
+        isCA: true
+        duration: "17520h"
+        renewBefore: "720h"
+        commonName: "{{ create_certificates_intermediate_ca_cn }}"
+        emailAddresses:
+          - "{{ create_certificates_email }}"
+        subject:
+          organizations: "{{ create_certificates_organizations }}"
+          countries: "{{ create_certificates_countries }}"
+          organizationalUnits: "{{ create_certificates_organizational_units }}"
+          localities: "{{ create_certificates_localities }}"
+          provinces: "{{ create_certificates_provinces }}"
+        secretName: "{{ create_certificates_intermediate_ca }}"
+        usages:
+          - digital signature
+          - cert sign
+          - crl sign
+          - server auth
+          - client auth
+        privateKey:
+          algorithm: "{{ create_certificates_algorithm }}"
+        issuerRef:
+          name: "{{ create_certificates_intermediate_ca }}"
+          kind: ClusterIssuer
+          group: cert-manager.io
+    kubeconfig: "{{ create_certificates_kubeconfig }}"
+
+- name: Add sync label to Certificate {{ certificates_root_ca }}
+  connection: local
+  kubernetes.core.k8s:
+    name: "{{ create_certificates_root_ca }}"
+    namespace: "{{ create_certificates_namespace }}"
+    kind: Certificate
+    state: patched
+    definition:
+      spec:
+        secretTemplate:
+          annotations:
+            kubed.appscode.com/sync: "cert-sync={{ create_certificates_root_ca_sync_label }}"
+    kubeconfig: "{{ create_certificates_kubeconfig }}"
+  when: kubed_enabled | default(false) | bool
+
+- name: Create ClusterIssuer {{ create_certificates_cluster_issuer_name }} signed by {{ create_certificates_intermediate_ca }}
+  connection: local
+  kubernetes.core.k8s:
+    name: "{{ create_certificates_cluster_issuer_name }}"
+    api_version: cert-manager.io/v1
+    kind: ClusterIssuer
+    state: present
+    definition:
+      spec:
+        ca:
+          secretName: "{{ create_certificates_intermediate_ca }}"
+    kubeconfig: "{{ create_certificates_kubeconfig }}"

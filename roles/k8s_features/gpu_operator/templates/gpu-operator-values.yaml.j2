@@ -1,0 +1,94 @@
+#
+# NVIDIA GPU Operator Helm Values
+# https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/
+#
+
+# Operator configuration (runs on any node, manages GPU components)
+operator:
+  repository: {{ gpu_operator_repository }}
+  image: {{ gpu_operator_image }}
+  version: {{ gpu_operator_version }}
+  imagePullPolicy: IfNotPresent
+  tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
+  initContainer:
+    repository: {{ gpu_operator_cuda_repository }}
+    image: {{ gpu_operator_cuda_image }}
+    version: {{ gpu_operator_cuda_version }}
+  resources:
+    requests:
+      memory: {{ gpu_operator_operator_requests_memory }}
+      cpu: {{ gpu_operator_operator_requests_cpu }}
+
+# Driver configuration - DISABLED (pre-installed driver mode)
+driver:
+  enabled: {{ gpu_operator_driver_enabled | lower }}
+
+# This avoids the nvidia-container-runtime-hook issues with CRI-O
+cdi:
+  enabled: {{ gpu_operator_cdi_enabled | lower }}
+  default: {{ gpu_operator_cdi_default | lower }}
+
+gfd:
+  enabled: false
+
+# Container Toolkit configuration (runs on GPU nodes)
+toolkit:
+  enabled: {{ gpu_operator_toolkit_enabled | lower }}
+  repository: {{ gpu_operator_toolkit_repository }}
+  image: {{ gpu_operator_toolkit_image }}
+  version: {{ gpu_operator_toolkit_version }}
+  # Environment variables for CRI-O configuration
+  env:
+    - name: CRIO_CONFIG
+      value: "/etc/crio/crio.conf"
+    - name: CRIO_SOCKET
+      value: "/var/run/crio/crio.sock"
+{% if not gpu_operator_cdi_enabled %}
+    - name: CRIO_RUNTIME_CLASS
+      value: "nvidia"
+{% endif %}
+
+# Device Plugin configuration (runs on GPU nodes)
+devicePlugin:
+  enabled: {{ gpu_operator_device_plugin_enabled | lower }}
+  repository: {{ gpu_operator_device_plugin_repository }}
+  image: {{ gpu_operator_device_plugin_image }}
+  version: {{ gpu_operator_device_plugin_version }}
+
+dcgmExporter:
+  enabled: {{ gpu_operator_dcgm_exporter_enabled | lower }}
+  repository: {{ gpu_operator_dcgm_exporter_repository }}
+  image: dcgm-exporter
+  version: {{ gpu_operator_dcgm_exporter_tag }}
+
+# Validator configuration (runs on GPU nodes)
+validator:
+  enabled: {{ gpu_operator_validator_enabled | lower }}
+  repository: {{ gpu_operator_validator_repository }}
+  image: {{ gpu_operator_validator_image }}
+  version: {{ gpu_operator_validator_version }}
+  imagePullPolicy: IfNotPresent
+
+node-feature-discovery:
+  enabled: {{ gpu_operator_nfd_enabled | lower }}
+  image:
+    repository: {{ gpu_operator_nfd_repository }}/{{ gpu_operator_nfd_image }}
+    tag: {{ gpu_operator_nfd_tag }}
+  worker:
+    tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"

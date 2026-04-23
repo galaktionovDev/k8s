@@ -1,0 +1,4 @@
+---
+csr_approve_become: "{{ cluster_become | default('true') }}"
+csr_approve_kubeconfig: "{{ cluster_kubeconfig | default('/etc/kubernetes/admin.conf') }}"
+csr_approve_master_group: "masters"

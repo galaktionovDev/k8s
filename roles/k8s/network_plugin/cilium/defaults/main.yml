@@ -1,0 +1,79 @@
+---
+cilium_image_repository: "{{ cluster_registry | default('quay.io') }}"
+cilium_image_name: cilium/cilium
+cilium_image_tag: v1.16.4
+cilium_operator_generic_image_repository: "{{ cluster_registry | default('quay.io') }}"
+cilium_operator_generic_image_name: cilium/operator-generic
+cilium_operator_generic_image_tag: v1.16.4
+cilium_hubble_relay_image_repository: "{{ cluster_registry | default('quay.io') }}"
+cilium_hubble_relay_image_name: cilium-hubble-relay
+cilium_hubble_relay_image_tag: v1.16.4
+cilium_hubble_ui_backend_image_repository: "{{ cluster_registry | default('quay.io') }}"
+cilium_hubble_ui_backend_image_name: cilium-hubble-ui-backend
+cilium_hubble_ui_backend_image_tag: v1.16.4
+cilium_hubble_ui_image_repository: "{{ cluster_registry | default('quay.io') }}"
+cilium_hubble_ui_image_name: cilium-hubble-ui
+cilium_hubble_ui_image_tag: v1.16.4
+# cilium_envoy_image_repository: "{{ cluster_registry | default('docker.io') }}"
+# cilium_envoy_image_name: envoyproxy-envoy
+# cilium_envoy_image_tag: v1.18.4
+cilium_envoy_image_repository: "{{ cluster_registry }}"
+cilium_envoy_image_name: cilium/cilium-envoy
+cilium_envoy_image_tag: v1.30.7-1731393961-97edc2815e2c6a174d3d12e71731d54f5d32ea16
+
+cilium_operator_node_selector:
+  node-role.kubernetes.io/control-plane: ""
+cilium_hubble_relay_node_selector:
+  node-role.kubernetes.io/infra: ""
+
+cilium_config_path: "{{ cluster_config_path | default('/etc/kubernetes/templates') }}"
+cilium_namespace: cluster-cilium
+
+cilium_helm_bin_path: "{{ cluster_helm_bin | default('/usr/local/bin/helm') }}"
+cilium_helm_repo: "{{ cluster_helm_repo | default('NO_REPO') }}"
+cilium_helm_chart_version: 1.16.4
+cilium_helm_debug: false
+cilium_helm_wait: true
+cilium_helm_wait_timeout: 300s
+cilium_helm_force: false
+
+cilium_agent_request_cpu: 100m
+cilium_agent_request_memory: 256Mi
+cilium_operator_request_cpu: 100m
+cilium_operator_request_memory: 256Mi
+cilium_cert_manager_issuer_name: "{{ cluster_cluster_issuer_name | default('cluster-root-ca') }}"
+
+cilium_pod_subnet_cidr: "192.168.0.0/16"
+
+cilium_hubble_enabled: false
+cilium_deploy_with_features: false
+
+cilium_egressip_enabled: true
+
+cilium_monitoring_features: true
+
+cilium_kubeproxy_replace: true
+
+cilium_tunnel_name: "geneve"
+
+cilium_cri_name: crio
+cilium_cri_socket_path: "{{ cr_socket }}"
+
+cilium_hubble_external_hostname: "hubble.apps.{{ cluster_name }}.{{ domain_suffix }}"
+cilium_kubeconfig: "{{ cluster_kubeconfig | default('/etc/kubernetes/admin.conf') }}"
+
+cilium_k8s_api_host: "{{ cluster_api_fqdn | default('api-int.' + cluster_name + '.' domain_suffix) }}"
+cilium_k8s_api_port: 6443
+
+cillium_use_itcacmcpl: "{{ cluster_use_itcacmcpl | default(false) }}"
+cillium_itcacmcpl_cert_duration: "{{ cluster_itcacmcpl_cert_duration | default('8760h') }}"
+
+cilium_cli_path: /app/cilium
+cilium_cli_url: "https://github.com/cilium/cilium-cli/releases/download/v0.16.22/"
+hubble_cli_url: "https://github.com/cilium/hubble/releases/download/v1.16.4/"
+cilium_cli_url_headers: {}
+cilium_cli_install_proxy: ""
+cilium_become: "{{ cluster_become | default('true') }}"
+cilium_helm_repo_config_dir: "{{ cluster_helm_config_dir | default('root/.config/helm') }}"
+cilium_helm_repo_cache_dir: "{{ cluster_helm_cache_dir | default('/root/.cache/helm') }}"
+cilium_helm_repo_data_dir: "{{ cluster_helm_data_dir | default('/root/.local/share/helm') }}"

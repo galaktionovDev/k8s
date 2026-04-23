@@ -1,0 +1,50 @@
+---
+
+# Параметры логики роли
+kube_metrics_enabled: false
+kube_metrics_config_path: "{{ cluster_config_path | default('/etc/kubernetes/templates') }}"
+kube_metrics_kubeconfig: "{{ cluster_kubeconfig | default('/etc/kubernetes/admin.conf') }}"
+kube_metrics_update_rules_only: false
+
+# Helm
+kube_metrics_name: kube-metrics
+kube_metrics_helm_force: false
+kube_metrics_helm_bin_path: "{{ cluster_helm_bin | default('/usr/local/bin/helm') }}"
+kube_metrics_helm_repo: "{{ cluster_helm_repo | default('NO_REPO') }}"
+kube_metrics_helm_chart_name: "metrics-server"
+kube_metrics_helm_chart_version: 3.12.2
+kube_metrics_helm_debug: false
+kube_metrics_namespace: cluster-kube-metrics
+
+# Helm values
+kube_metrics_repository: "{{ cluster_registry | default('registry.k8s.io') }}"
+kube_metrics_image_name: "metrics-server/metrics-server"
+kube_metrics_image_tag: "v0.7.2"
+kube_metrics_pullpolicy: "IfNotPresent"
+
+kube_metrics_replicas: 2
+kube_metrics_maxsurge: 0
+kube_metrics_maxunavailable: 1
+
+kube_metrics_pdb_enabled: true
+kube_metrics_pdb_min_available: 1
+
+kube_metrics_args:
+  - --kubelet-insecure-tls
+
+kube_metrics_own_metrics_enabled: "{{ monitoring_enabled | default(false) }}"
+kube_metrics_min_available: 0
+kube_metrics_psp_enabled: false
+
+kube_metrics_resource_req_cpu: 100m
+kube_metrics_resource_req_memory: 300Mi
+
+kube_metrics_nodeselector:
+  node-role.kubernetes.io/infra: ""
+
+kube_metrics_no_log: "{{ cluster_no_log | default('true') }}"
+
+kube_metrics_helm_repo_config_dir: "{{ cluster_helm_config_dir | default('/root/.config/helm') }}"
+kube_metrics_helm_repo_cache_dir: "{{ cluster_helm_cache_dir | default('/root/.cache/helm') }}"
+kube_metrics_helm_repo_data_dir: "{{ cluster_helm_data_dir | default('/root/.local/share/helm') }}"
+kube_metrics_tolerations: []

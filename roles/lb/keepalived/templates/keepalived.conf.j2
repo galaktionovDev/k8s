@@ -1,0 +1,33 @@
+vrrp_script chk_haproxy {
+  script "/usr/local/bin/keepalived_check_haproxy.sh"
+  interval {{ keepalived_check_interval }}
+  weight {{ keepalived_check_weight }}
+}
+
+vrrp_instance VI_1 {
+  state {{ keepalived_effective_state }}
+  interface {{ keepalived_effective_interface }}
+  virtual_router_id {{ keepalived_virtual_router_id }}
+  priority {{ keepalived_effective_priority }}
+  advert_int {{ keepalived_advert_int }}
+  authentication {
+    auth_type {{ keepalived_auth_type }}
+    auth_pass {{ keepalived_auth_pass }}
+  }
+  virtual_ipaddress {
+    {{ keepalived_effective_vip }}{% if keepalived_vip_cidr | length > 0 %}/{{ keepalived_vip_cidr }}{% endif %}
+  }
+{% if keepalived_track_haproxy %}
+  track_script {
+    chk_haproxy
+  }
+{% endif %}
+{% if keepalived_use_unicast and keepalived_unicast_peers_effective | length > 0 %}
+  unicast_src_ip {{ keepalived_unicast_src_ip | default(ansible_default_ipv4.address) }}
+  unicast_peer {
+{% for ip in keepalived_unicast_peers_effective %}
+    {{ ip }}
+{% endfor %}
+  }
+{% endif %}
+}

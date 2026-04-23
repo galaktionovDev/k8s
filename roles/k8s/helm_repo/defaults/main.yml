@@ -1,0 +1,7 @@
+---
+helm_repo_list: []
+helm_repo_no_log: "{{ cluster_no_log | default('true') }}"
+helm_repo_config_dir: "{{ cluster_helm_config_dir | default('root/.config/helm') }}"
+helm_repo_cache_dir: "{{ cluster_helm_cache_dir | default('/root/.cache/helm') }}"
+helm_repo_data_dir: "{{ cluster_helm_data_dir | default('/root/.local/share/helm') }}"
+helm_repo_bin: "{{ cluster_helm_bin | default('/usr/local/bin/helm') }}"

@@ -1,0 +1,8 @@
+---
+
+- import_playbook: cloud_variables.yml
+- import_playbook: validate_vars.yml
+- import_playbook: prerequisites.yml
+- import_playbook: setup_lb.yml
+- import_playbook: setup_k8s.yml
+- import_playbook: setup_features.yml

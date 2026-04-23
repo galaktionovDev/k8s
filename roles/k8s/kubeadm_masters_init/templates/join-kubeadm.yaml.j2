@@ -1,0 +1,29 @@
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: JoinConfiguration
+discovery:
+  bootstrapToken:
+    apiServerEndpoint: {{ kubeadm_masters_init_cluster_api_hostname }}:{{ kubeadm_masters_init_api_port }}
+    token: {{ kubeadm_masters_init_join_command.stdout }}
+    caCertHashes:
+      - sha256:{{ kubeadm_masters_init_ca_hash.stdout | trim }}
+  timeout: 5m0s
+controlPlane:
+  localAPIEndpoint:
+    advertiseAddress: {{ ansible_default_ipv4.address }}
+    bindPort: {{ kubeadm_masters_init_api_port }}
+  certificateKey: {{ kubeadm_masters_init_certificates_key.stdout_lines | last | string }}
+caCertPath: /etc/kubernetes/pki/ca.crt
+nodeRegistration:
+  criSocket: {{ kubeadm_masters_init_cri_socket }}
+  name: {{ inventory_hostname }}
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/control-plane
+  imagePullPolicy: IfNotPresent
+  ignorePreflightErrors:
+    - ImagePull
+  kubeletExtraArgs:
+    root-dir: /app/kubelet
+patches:
+  directory: /etc/kubernetes/kubeadm/patches

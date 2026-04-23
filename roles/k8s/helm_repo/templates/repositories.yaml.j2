@@ -1,0 +1,13 @@
+apiVersion: ""
+generated: "0001-01-01T00:00:00Z"
+repositories:
+{% for repo in helm_repo_list %}
+- caFile: "{{ repo.caFile | default('')}}"
+  certFile: ""
+  insecure_skip_tls_verify: {{ repo.tls | default('false') }}
+  keyFile: ""
+  name: {{ repo.name }}
+  password: {{ repo.password | default('""')}}
+  url: {{ repo.url }}
+  username: {{ repo.username | default('""')}}
+{% endfor %}

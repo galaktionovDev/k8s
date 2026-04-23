@@ -1,0 +1,21 @@
+---
+
+- name: include diff plugin
+  ansible.builtin.include_tasks:
+    file: install.yml
+  when:
+    - helm_install | bool
+
+- name: include diff plugin
+  ansible.builtin.include_tasks:
+    file: diff.yml
+  when:
+    - helm_install_diff | bool
+    - helm_install | bool
+
+- name: include helm completion
+  ansible.builtin.include_tasks:
+    file: completion.yml
+  when:
+    - helm_completion | bool
+    - helm_install | bool

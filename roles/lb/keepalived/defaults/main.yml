@@ -1,0 +1,14 @@
+---
+keepalived_enabled: true
+keepalived_interface: ""
+keepalived_vip: ""
+keepalived_vip_cidr: ""
+keepalived_virtual_router_id: 51
+keepalived_advert_int: 1
+keepalived_auth_type: "PASS"
+keepalived_auth_pass: "k8s"
+keepalived_use_unicast: true
+keepalived_group_name: "load_balancers"
+keepalived_check_interval: 2
+keepalived_check_weight: -20
+keepalived_track_haproxy: true

@@ -1,0 +1,34 @@
+---
+- name: Prepare Namespace {{ cert_manager_namespace }}
+  run_once: true
+  import_tasks: namespace.yml
+  when: cert_manager_enabled | bool
+
+- name: Create directory {{ cert_manager_config_path }}
+  connection: local
+  become: "{{ cert_manager_become }}"
+  ansible.builtin.file:
+    path: "{{ cert_manager_config_path }}"
+    mode: "0755"
+    state: directory
+  when: cert_manager_enabled | bool
+
+- name: Install {{ cert_manager_name }}
+  import_tasks: cert_manager.yml
+  when: cert_manager_enabled | bool
+
+- name: Install kubectl cert-manager plugin
+  import_tasks: plugin.yml
+  when:
+    - cert_manager_enabled | bool
+    - cert_manager_plugin_enabled | bool
+
+- name: announce  feature resources
+  ansible.builtin.import_role:
+    name: common/feature_resources
+  vars:
+    feature_resources:
+      - type: infra
+        cpu: "{{ cert_manager_requests_cpu }}"
+        memory: "{{ cert_manager_requests_memory }}"
+  when: cert_manager_enabled | bool

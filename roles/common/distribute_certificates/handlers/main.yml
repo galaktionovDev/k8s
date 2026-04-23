@@ -1,0 +1,49 @@
+---
+- name: Update trusted CA
+  command: /usr/sbin/update-ca-certificates
+  register: out_update_ca
+  changed_when: out_update_ca.rc == 0
+  notify:
+    - Restart kube-apiserver
+    - Wait until API would be restarted in localhost
+    - Wait until API would be ready in localhost
+    - Wait until API would be ready
+
+- name: Restart kube-apiserver
+  connection: local
+  become: "{{ distribute_certificates_become }}"
+  kubernetes.core.k8s:
+    name: "kube-apiserver-{{ inventory_hostname }}"
+    namespace: kube-system
+    kind: Pod
+    state: absent
+    kubeconfig: "{{ distribute_certificates_kubeconfig }}"
+
+- name: Wait until API would be restarted in localhost
+  wait_for:
+    delay: 20
+    timeout: 60
+    host: localhost
+    port: 6443
+
+- name: Wait until API would be ready in localhost
+  uri:
+    url: "https://localhost:6443/readyz"
+    status_code: 200
+    validate_certs: false
+  register: api_response
+  until: api_response.status == 200
+  retries: 60
+  delay: 1
+  when: not ansible_check_mode
+
+- name: Wait until API would be ready
+  uri:
+    url: "https://{{ distribute_certificates_api_fqdn }}:6443/readyz"
+    status_code: 200
+    validate_certs: false
+  register: api_response
+  until: api_response.status == 200
+  retries: 60
+  delay: 1
+  when: not ansible_check_mode

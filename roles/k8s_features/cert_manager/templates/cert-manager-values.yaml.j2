@@ -1,0 +1,121 @@
+#
+# https://artifacthub.io/packages/helm/cert-manager/cert-manager
+#
+
+global:
+  logLevel: {{ cert_manager_log_level }}
+
+installCRDs: true
+
+replicaCount: {{ cert_manager_replica_count }}
+
+image:
+  repository: {{ cert_manager_controller_image_repository }}/{{ cert_manager_controller_image_name }}
+  tag: {{ cert_manager_controller_image_tag }}
+
+nodeSelector: {{ cert_manager_node_selector }}
+tolerations: {{ cert_manager_tolerations }}
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 50%
+    maxSurge: 0
+
+prometheus:
+{% if monitoring_enabled | default(false) | bool %}
+  enabled: true
+  servicemonitor:
+    enabled: true
+    labels:
+      release: {{ cert_manager_monitoring_name }}
+{% else %}
+  enabled: false
+{% endif %}
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/component: controller
+            app.kubernetes.io/instance: cert-manager
+            app.kubernetes.io/name: cert-manager
+        topologyKey: kubernetes.io/hostname
+
+{% if cert_manager_proxy_url | length > 0  %}
+http_proxy: {{ cert_manager_proxy_url }}
+https_proxy: {{ cert_manager_proxy_url }}
+{% if cert_manager_proxy_exclude | length > 0  %}
+no_proxy: {{ cert_manager_proxy_exclude }}
+{% endif %}
+{% endif %}
+
+resources:
+  requests:
+    memory: {{ cert_manager_requests_memory }}
+    cpu: {{ cert_manager_requests_cpu }}
+
+webhook:
+  replicaCount: {{ cert_manager_webhook_replica_count }}
+
+  nodeSelector: {{ cert_manager_node_selector }}
+  tolerations: {{ cert_manager_tolerations }}
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 50%
+      maxSurge: 0
+
+  image:
+    repository: {{ cert_manager_webhook_image_repository }}/{{ cert_manager_webhook_image_name }}
+    tag: {{ cert_manager_webhook_image_tag }}
+
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: webhook
+              app.kubernetes.io/instance: cert-manager
+              app.kubernetes.io/name: webhook
+          topologyKey: kubernetes.io/hostname
+
+cainjector:
+  enabled: true
+  replicaCount: {{ cert_manager_cainjector_replica_count }}
+
+  nodeSelector: {{ cert_manager_node_selector }}
+  tolerations: {{ cert_manager_tolerations }}
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 50%
+      maxSurge: 0
+
+  image:
+    repository: {{ cert_manager_cainjector_image_repository }}/{{ cert_manager_cainjector_image_name }}
+    tag: {{ cert_manager_cainjector_image_tag }}
+
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: cainjector
+              app.kubernetes.io/instance: cert-manager
+              app.kubernetes.io/name: cainjector
+          topologyKey: kubernetes.io/hostname
+
+startupapicheck:
+  nodeSelector: {{ cert_manager_node_selector }}
+  tolerations: {{ cert_manager_tolerations }}
+
+  image:
+    repository: {{ cert_manager_ctl_image_repository }}/{{ cert_manager_ctl_image_name }}
+    tag: {{ cert_manager_ctl_image_tag }}
+
+extraArgs:
+  - --enable-certificate-owner-ref

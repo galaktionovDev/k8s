@@ -1,0 +1,44 @@
+---
+ingress_chart_name: ingress-nginx
+ingress_shard_delete: false
+ingress_shard_name: "ingress"
+ingress_chart_version: 4.11.3
+ingress_controller_image_repository: "{{ cluster_registry | default('nexus.example.com') }}"
+ingress_controller_image_name: ingress-nginx/controller
+ingress_controller_image_tag: v1.12.1
+
+ingress_debug: false
+ingress_namespace: cluster-ingress
+ingress_namespace_node_selector: ""
+ingress_namespace_labels:
+  networking.k8s.io/policy-group: ingress
+ingress_helm_force: false
+
+ingress_group_name: "{{ ingress_shard_name | replace('-', '_') }}"
+ingress_shard_replica_count: "{{ (groups[ingress_group_name] | length) | default('0') }}"
+ingress_requests_memory: 125Mi
+ingress_requests_cpu: 100m
+ingress_kind: Deployment
+ingress_host_network: false
+ingress_proxy_protocol: false
+ingress_ssl_passthrough: false
+ingress_nginx_disable_access_log: true
+ingress_nginx_max_worker_connections: "65536"
+ingress_tcp_services: {}
+ingress_udp_services: {}
+
+ingress_kubeconfig: "{{ cluster_kubeconfig | default('/etc/kubernetes/admin.conf') }}"
+ingress_helm_bin: "{{ cluster_helm_bin | default('/usr/local/bin/helm') }}"
+ingress_helm_repo: "{{ cluster_helm_repo | default('NO_REPO') }}"
+ingress_config_path: "{{ cluster_config_path | default('/etc/kubernetes/templates') }}"
+ingress_cert_manager_enabled: "{{ cert_manager_enabled | default('false') }}"
+ingress_monitoring_enabled: "{{ monitoring_enabled | default('false') }}"
+ingress_monitoring_name: "{{ monitoring_name | default('monitoring') }}"
+
+ingress_no_log: "{{ cluster_no_log | default('true') }}"
+
+ingress_helm_repo_config_dir: "{{ cluster_helm_config_dir | default('/root/.config/helm') }}"
+ingress_helm_repo_cache_dir: "{{ cluster_helm_cache_dir | default('/root/.cache/helm') }}"
+ingress_helm_repo_data_dir: "{{ cluster_helm_data_dir | default('/root/.local/share/helm') }}"
+ingress_tolerations: []
+ingress_scope_enabled: true

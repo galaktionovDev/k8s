@@ -1,0 +1,103 @@
+---
+gpu_operator_enabled: false
+gpu_operator_helm_force: false
+gpu_operator_debug: false
+gpu_operator_name: gpu-operator
+gpu_operator_chart_version: v25.10.1
+
+
+# Registry configuration
+gpu_operator_registry: "{{ cluster_registry | default('products-docker.nexus.k2n-blue01.a2cloud.dev.box') }}"
+
+# Operator image (registry/path, image name, version separately)
+gpu_operator_repository: "{{ gpu_operator_registry }}/nvidia"
+gpu_operator_image: gpu-operator
+gpu_operator_version: v25.10.1
+
+# Device Plugin image
+gpu_operator_device_plugin_repository: "{{ gpu_operator_registry }}/nvidia"
+gpu_operator_device_plugin_image: k8s-device-plugin
+gpu_operator_device_plugin_version: v0.18.1
+
+# Container Toolkit image
+gpu_operator_toolkit_repository: "{{ gpu_operator_registry }}/nvidia/k8s"
+gpu_operator_toolkit_image: container-toolkit
+gpu_operator_toolkit_version: v1.18.1
+
+# Validator image
+gpu_operator_validator_repository: "{{ gpu_operator_registry }}/nvidia/cloud-native"
+gpu_operator_validator_image: gpu-operator-validator
+gpu_operator_validator_version: v24.9.2
+
+# Node Feature Discovery image (subchart uses image.repository/image.tag structure)
+gpu_operator_nfd_repository: "{{ gpu_operator_registry }}/nfd"
+gpu_operator_nfd_image: node-feature-discovery
+gpu_operator_nfd_tag: v0.18.2
+
+# CUDA base image (for initContainer)
+gpu_operator_cuda_repository: "{{ gpu_operator_registry }}/nvidia"
+gpu_operator_cuda_image: cuda
+gpu_operator_cuda_version: 12.6.3-base-ubi9
+
+# Driver configuration (pre-installed mode)
+gpu_operator_driver_enabled: false
+
+# Component enablement
+gpu_operator_toolkit_enabled: true
+gpu_operator_device_plugin_enabled: true
+# gpu_operator_validator_enabled: true
+gpu_operator_validator_enabled: false
+
+gpu_operator_nfd_enabled: true
+
+# Validator runtimeClass fix (ensure validator gets GPU injection)
+# gpu_operator_validator_runtime_class_enabled: true
+gpu_operator_validator_runtime_class_enabled: false
+gpu_operator_validator_runtime_class: "nvidia"
+
+# CDI configuration (Container Device Interface)
+# gpu_operator_cdi_enabled: false
+gpu_operator_cdi_enabled: true
+# gpu_operator_cdi_default: false
+gpu_operator_cdi_default: true
+gpu_operator_crio_runtime_class: "nvidia"
+
+# CRI-O restart configuration
+# CRI-O needs restart after toolkit configures nvidia runtime handler
+# gpu_operator_restart_crio: true
+gpu_operator_restart_crio: false
+# Helm deploy behavior
+# Disable wait/atomic for CRI-O clusters because:
+# 1. Pods may fail initially before CRI-O restart
+# 2. After CRI-O restart, pods will be recreated and work
+gpu_operator_helm_wait: true
+gpu_operator_helm_atomic: false
+
+# Namespace configuration
+gpu_operator_namespace: gpu-operator
+gpu_operator_namespace_labels:
+  networking.k8s.io/policy-group: gpu-operator
+
+gpu_operator_tolerations: []
+
+# Helm configuration
+gpu_operator_kubeconfig: "{{ cluster_kubeconfig | default('/etc/kubernetes/admin.conf') }}"
+gpu_operator_helm_bin: "{{ cluster_helm_bin | default('/usr/local/bin/helm') }}"
+gpu_operator_helm_repo: "{{ cluster_helm_repo | default('NO_REPO') }}"
+gpu_operator_config_path: "{{ cluster_config_path | default('/etc/kubernetes/templates') }}"
+
+gpu_operator_no_log: "{{ cluster_no_log | default('true') }}"
+
+gpu_operator_helm_repo_config_dir: "{{ cluster_helm_config_dir | default('/root/.config/helm') }}"
+gpu_operator_helm_repo_cache_dir: "{{ cluster_helm_cache_dir | default('/root/.cache/helm') }}"
+gpu_operator_helm_repo_data_dir: "{{ cluster_helm_data_dir | default('/root/.local/share/helm') }}"
+
+gpu_operator_become: "{{ cluster_become | default('true') }}"
+
+# Resource requests (optional)
+gpu_operator_operator_requests_memory: 100Mi
+gpu_operator_operator_requests_cpu: 10m
+
+gpu_operator_dcgm_exporter_enabled: true
+gpu_operator_dcgm_exporter_repository: "{{ gpu_operator_registry }}/nvidia/k8s"
+gpu_operator_dcgm_exporter_tag: 4.4.2-4.7.0-distroless

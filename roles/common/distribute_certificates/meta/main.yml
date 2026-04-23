@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  author: EG
+  description: Role of distribute root certificate between master nodes in k8s cluster and restart kube-apiserver
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+  galaxy_tags: []
+dependencies: []

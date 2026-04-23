@@ -1,0 +1,10 @@
+---
+
+# FOR CLEAN IMAGES
+set_dns: false
+# FOR BANK
+set_dns_bank: false
+set_dns_ip: []
+set_dns_domains: []
+set_dns_ansible_managed: '# This file managed by containerization group playbook'
+set_dns_priority_ipv4: true

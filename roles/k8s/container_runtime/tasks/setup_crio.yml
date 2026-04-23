@@ -1,0 +1,118 @@
+---
+# tasks file for setup_crio
+
+- name: "Setup_crio | Configure required kernel modules to load at startup and trigger reload if needed"
+  template:
+    src: modules_crio.conf.j2
+    dest: /etc/modules-load.d/crio.conf
+    mode: "0644"
+    owner: root
+    group: root
+  notify: "restart crio"
+
+- name: "Setup_crio | Check loaded kernel modules"
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ cr_crio_kernel_modules }}"
+  notify: "restart crio"
+
+- name: "Setup crio | Ensure sysctl is set"
+  ansible.posix.sysctl:
+    name: "{{ item.split('=')[0] }}"
+    value: "{{ item.split('=')[1] }}"
+    reload: true
+    sysctl_set: true
+    state: present
+  loop: "{{ cr_crio_sysctl_parameters }}"
+
+- name: template crictl config
+  template:
+    src: crictl-crio.yaml.j2
+    dest: /etc/crictl.yaml
+    mode: "0644"
+    owner: root
+    group: root
+  notify: "restart crio"
+
+- name: Setup_crio | Install Astra Linux specific packages
+  vars:
+    apt_install:
+      - libip6tc2=1.8.9-2+b2
+      - iptables=1.8.9-2+b2
+  ansible.builtin.import_role:
+    name: common/apt_install
+  when: ansible_distribution.split(' ') | first | lower in ['astra']
+
+- name: Setup_crio | Install packages
+  vars:
+    apt_install: "{{ cr_crio_packages_names }}"
+  ansible.builtin.import_role:
+    name: common/apt_install
+  notify:
+    - "restart crio"
+
+- name: Setup_crio | Create directories (logs, storage, etc)
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - /app
+    - /etc/crio
+    - "{{ cr_crio_root_dir_path }}"
+    - "{{ cr_crio_root_dir_path }}/logs/pods"
+    - "{{ cr_crio_root_dir_path }}/containers/storage"
+
+- name: "Setup_crio | Configure crio config /etc/crio/crio.conf"
+  no_log: "{{ cr_no_log }}"
+  template:
+    src: crio_config.j2
+    dest: /etc/crio/crio.conf
+    mode: "0644"
+    owner: root
+    group: root
+  notify:
+    - "restart crio"
+
+- name: "Setup_mirroring | Configure crio registries.conf config /etc/containers/registries.conf"
+  no_log: "{{ cr_no_log }}"
+  template:
+    src: registries.conf.j2
+    dest: /etc/containers/registries.conf
+    mode: "0644"
+    owner: root
+    group: root
+  notify: "restart crio"
+
+- name: "Setup_auth | Configure crio credentials auth registy config /etc/crio/config.json"
+  no_log: "{{ cr_no_log }}"
+  template:
+    src: config-auth.json.j2
+    dest: /etc/crio/config.json
+    mode: "0644"
+    owner: root
+    group: root
+  when:
+    - cr_crio_auth_hostname | length > 0
+    - "cluster_registry_login is defined"
+    - "cluster_registry_passwd is defined"
+  notify:
+    - "restart crio"
+
+- name: Setup_crio | Remove crio cni
+  file:
+    path: "/etc/cni/net.d/100-crio-bridge.conf"
+    state: absent
+  notify:
+    - "restart crio"
+
+- name: Force restart crio
+  run_once: true
+  ansible.builtin.command:
+    cmd: 'true'
+  when: cr_crio_force_restart | bool
+  notify:
+    - "restart crio"

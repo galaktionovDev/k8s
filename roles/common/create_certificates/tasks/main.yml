@@ -1,0 +1,4 @@
+---
+- name: Generate certificates
+  run_once: true
+  import_tasks: create.yml

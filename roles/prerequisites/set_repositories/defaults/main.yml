@@ -1,0 +1,7 @@
+---
+set_repositories_requared_repo: []
+set_repositories_repo_keys: []
+set_repositories_apt_proxy: ""
+set_repositories_auth_keys: []
+set_repositories_no_log: "{{ cluster_no_log | default('true') }}"
+set_repositories_apt_no_proxy: []

@@ -1,0 +1,74 @@
+---
+- name: create cilium directory
+  connection: local
+  become: "{{ cilium_become }}"
+  run_once: true
+  ansible.builtin.file:
+    path: "{{ cilium_config_path }}"
+    state: directory
+    mode: "0755"
+
+- name: "import tasks for setup cilium cli"
+  import_tasks: cilium_cli.yml
+  when:
+    - not cilium_deploy_with_features | bool
+
+- name: create namespace
+  connection: local
+  become: "{{ cilium_become }}"
+  run_once: true
+  kubernetes.core.k8s:
+    kubeconfig: "{{ cilium_kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        annotations:
+          openshift.io/requester: 'system:admin'
+        labels:
+          router: infra
+        name: "{{ cilium_namespace }}"
+  notify:
+    - helm upgrade cilium minimal
+
+- name: template minimal cilium values
+  connection: local
+  run_once: true
+  become: "{{ cilium_become }}"
+  ansible.builtin.template:
+    src: cilium_minimal_values.yaml.j2
+    dest: "{{ cilium_config_path }}/cilium_minimal_values.yaml"
+    mode: "0755"
+  notify:
+    - helm upgrade cilium minimal
+  when:
+    - not cilium_deploy_with_features | bool
+
+- name: force update cilium minimal
+  run_once: true
+  ansible.builtin.command:
+    cmd: 'true'
+  notify:
+    - helm upgrade cilium minimal
+  when:
+    - cilium_helm_force | bool
+    - not cilium_deploy_with_features | bool
+
+- name: "import tasks for redeploy with features"
+  import_tasks: cilium_features.yml
+  when:
+    - cilium_deploy_with_features | bool
+
+- name: announce  feature resources
+  ansible.builtin.import_role:
+    name: common/feature_resources
+  vars:
+    feature_resources:
+      - type: worker
+        cpu: "{{ cilium_agent_request_cpu }}"
+        memory: "{{ cilium_agent_request_memory }}"
+      - type: infra
+        cpu: "{{ cilium_operator_request_cpu }}"
+        memory: "{{ cilium_operator_request_memory }}"
+

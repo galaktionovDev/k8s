@@ -1,0 +1,20 @@
+---
+- name: Get Secret {{ distribute_certificates_root_ca }} CA content
+  connection: local
+  become: "{{ distribute_certificates_become }}"
+  run_once: true
+  kubernetes.core.k8s_info:
+    kind: Secret
+    name: "{{ distribute_certificates_root_ca }}"
+    namespace: "{{ distribute_certificates_namespace }}"
+    kubeconfig: "{{ distribute_certificates_kubeconfig }}"
+  register: out_root_ca
+
+- name: Distribute CA content to master nodes
+  copy:
+    dest: /usr/local/share/ca-certificates/{{ distribute_certificates_cluster_name }}-{{ distribute_certificates_source }}-ca.crt
+    content: '{{ out_root_ca | json_query(''resources[0].data."ca.crt"'') | b64decode }}'
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Update trusted CA

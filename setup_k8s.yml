@@ -1,0 +1,88 @@
+---
+
+- hosts: k8s
+  gather_facts: true
+  become: true
+  roles:
+    - k8s/container_runtime
+  tags:
+    - cluster
+    - cri
+    - container_runtime
+
+- hosts: k8s
+  gather_facts: false
+  become: true
+  roles:
+    - k8s/pull_images
+    - k8s/kubelet
+    - k8s/kubectl
+    - k8s/kubeadm
+  tags:
+    - cluster
+    - pull_images
+    - kubelet
+    - kubectl
+    - kubeadm
+
+- hosts: masters
+  gather_facts: true
+  become: true
+  roles:
+    - k8s/kubeadm_masters_init
+  tags:
+    - cluster
+    - kubeadm_init
+    - cluster_init
+    - init
+
+- hosts: masters
+  gather_facts: true
+  become: "{{ cluster_become }}"
+  run_once: true
+  roles:
+    - k8s/helm_install
+    - k8s/helm_repo
+  tags:
+    - cluster
+    - helm
+
+- hosts: masters
+  become: true
+  gather_facts: true
+  roles:
+    - k8s/network_plugin/cilium
+  tags:
+    - cluster
+    - cni
+    - cilium
+
+- hosts: workers
+  gather_facts: true
+  become: true
+  roles:
+    - k8s/kubeadm_worker
+  tags:
+    - cluster
+    - kubeadm_worker
+    - worker_init
+    - init
+
+- hosts: k8s
+  gather_facts: true
+  become: "{{ cluster_become }}"
+  roles:
+    - k8s/node_labels
+  tags:
+    - cluster
+    - node_labels
+
+- hosts: k8s
+  become: "{{ cluster_become }}"
+  gather_facts: true
+  roles:
+    - k8s/csr_approve
+  tags:
+    - csr
+    - init
+    - cluster

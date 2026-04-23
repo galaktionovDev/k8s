@@ -1,0 +1,106 @@
+
+controller:
+  image:
+    repository: {{ ingress_controller_image_repository }}/{{ ingress_controller_image_name }}
+    tag: {{ ingress_controller_image_tag }}
+    digest: ""
+
+  config:
+    server-tokens: false
+    large-client-header-buffers: "16 128k"
+    proxy-buffers-number: 16
+    proxy-buffer-size: 128k
+    use-forwarded-headers: true
+    proxy-request-buffering: "off"
+    proxy-buffering: "off"
+    use-http2: true
+    proxy-body-size: 0
+    max-worker-connections: {{ ingress_nginx_max_worker_connections }}
+    disable-access-log: {{ ingress_nginx_disable_access_log | lower }}
+{% if ingress_proxy_protocol | bool %}
+    use-proxy-protocol: true
+{% endif %}
+
+  allowSnippetAnnotations: false
+
+  ingressClassResource:
+    default: false
+    name: {{ ingress_shard_name }}
+    enabled: true
+    controllerValue: "k8s.io/ingress-nginx-{{ ingress_shard_name }}"
+
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+  terminationGracePeriodSeconds: 60
+  replicaCount: {{ ingress_shard_replica_count }}
+
+  resources:
+    requests:
+      memory: {{ ingress_requests_memory }}
+      cpu: {{ ingress_requests_cpu }}
+
+  hostPort:
+    enabled: true
+
+  kind: {{ ingress_kind }}
+
+  service:
+    type: ClusterIP
+
+  nodeSelector:
+    node-role.kubernetes.io/{{ ingress_shard_name }}: ""
+  tolerations: {{ ingress_tolerations }}
+
+  hostNetwork: {{ ingress_host_network | bool }}
+
+  ingressClass: {{ ingress_shard_name }}
+  electionID: "ingress-electionid-{{ ingress_shard_name }}"
+
+{% if ingress_scope_enabled | bool %}
+  # Limit the scope of the controller to a specific namespace
+  scope:
+    namespaceSelector: "router={{ ingress_shard_name }}"
+{% endif %}
+
+  tcp:
+    configMapNamespace: {{ ingress_namespace }}
+
+  udp:
+    configMapNamespace: {{ ingress_namespace }}
+
+  extraArgs:
+{% if ingress_ssl_passthrough | bool %}
+    enable-ssl-passthrough: true
+{% endif %}
+
+  metrics:
+{% if ingress_monitoring_enabled | bool %}
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: {{ ingress_namespace }}
+      namespaceSelector:
+        any: true
+      additionalLabels:
+        release: {{ ingress_monitoring_name }}
+{% else %}
+    enabled: false
+{% endif %}
+{% if ingress_cert_manager_enabled | bool %}
+  admissionWebhooks:
+    annotations:
+      cert-manager.io/inject-ca-from: "{{ ingress_namespace }}/ingress-nginx-{{ ingress_shard_name }}-admission"
+    patch:
+      enabled: false
+    certificate: /usr/local/certificates/tls.crt
+    key: /usr/local/certificates/tls.key
+    namespaceSelector:
+      matchLabels:
+        router: {{ ingress_shard_name }}
+{% endif %}
+
+tcp: {{ ingress_tcp_services }}
+
+udp: {{ ingress_udp_services }}

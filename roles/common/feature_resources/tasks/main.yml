@@ -1,0 +1,39 @@
+---
+- name: ensure resources are corresponded
+  fail:
+    msg: "correspond feature_resources variables"
+  when:
+    - not feature_resources is defined
+
+- name: ensure resources variables is exists
+  run_once: true
+  set_fact:
+    feature_allocated: "{{ feature_allocated | default({}) }}"
+
+- name: create dict object if not exist
+  run_once: true
+  vars:
+    empty_res:
+      cpu: 0
+      memory: 0
+  set_fact:
+    feature_allocated: "{{ feature_allocated | default([]) | combine({ item.type : empty_res } ) }}"
+  loop: "{{ feature_resources }}"
+  when:
+    - item.type is defined
+    - not item.type in feature_allocated.keys()
+
+- name: combine all values
+  run_once: true
+  vars:
+    item_cpu: "{{ item.cpu | replace('m','') | int + feature_allocated[item.type].cpu | int }}"
+    item_memory: "{{ item.memory | replace('Mi','') | int + feature_allocated[item.type].cpu | int }}"
+  set_fact:
+    feature_allocated: "{{ feature_allocated | default([]) | combine( { item.type : {'cpu' : item_cpu , 'memory' : item_memory } } ) }}"
+  loop: "{{ feature_resources }}"
+
+- name: announce resources to stats
+  run_once: true
+  set_stats:
+    data:
+      allocated: "{{ feature_allocated }}"

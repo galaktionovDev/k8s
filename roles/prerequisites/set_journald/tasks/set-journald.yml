@@ -1,0 +1,23 @@
+---
+- name: "set_journald | configure journald"
+  become: true
+  template:
+    src: journald.conf.j2
+    dest: /etc/systemd/journald.conf
+    mode: "0644"
+    owner: root
+    group: root
+
+- name: "set_journald | restart journald"
+  become: true
+  service:
+    name: systemd-journald
+    state: restarted
+  changed_when: false
+
+- name: "set_journald | ensure journald is started and enabled"
+  become: true
+  service:
+    name: "systemd-journald"
+    state: started
+    enabled: true

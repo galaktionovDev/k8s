@@ -1,0 +1,43 @@
+---
+- name: Create directory
+  connection: local
+  ansible.builtin.file:
+    path: "{{ helm_path }}/helm-{{ helm_version }}/plugins"
+    mode: "0755"
+    state: directory
+
+- name: Fetch helm tarball
+  connection: local
+  ansible.builtin.get_url:
+    url: "{{ helm_url }}/helm-{{ helm_version }}-linux-amd64.tar.gz"
+    dest: "{{ helm_path }}/helm-{{ helm_version }}-linux-amd64.tar.gz"
+    mode: "0644"
+    headers: "{{ helm_url_headers }}"
+    validate_certs: "{{ helm_install_validate_certs }}"
+  no_log: "{{ cluster_no_log | default('true') }}"
+  environment:
+    http_proxy: "{{ helm_install_proxy }}"
+    https_proxy: "{{ helm_install_proxy }}"
+
+- name: Unpack helm tarball
+  connection: local
+  ansible.builtin.unarchive:
+    src: "{{ helm_path }}/helm-{{ helm_version }}-linux-amd64.tar.gz"
+    dest: "{{ helm_path }}/helm-{{ helm_version }}"
+    mode: "0755"
+    remote_src: true
+
+- name: Create directory
+  connection: local
+  ansible.builtin.file:
+    path: "{{ helm_install_bin | dirname }}"
+    mode: "0755"
+    state: directory
+
+- name: Copy helm binary
+  connection: local
+  ansible.builtin.file:
+    src: "{{ helm_path }}/helm-{{ helm_version }}/linux-amd64/helm"
+    dest: "{{ helm_install_bin }}"
+    mode: "0755"
+    state: link

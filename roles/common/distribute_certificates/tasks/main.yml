@@ -1,0 +1,3 @@
+---
+- name: Distribute root certificate
+  import_tasks: distribute.yml

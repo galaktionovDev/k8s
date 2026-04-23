@@ -1,0 +1,152 @@
+---
+- name: create kubeadm directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: 0700
+    state: directory
+  loop:
+    - /etc/kubernetes/kubeadm
+    - /etc/kubernetes/kubeadm/patches
+    - /etc/kubernetes/tmp
+    - "{{ kubeadm_masters_init_etc_data_dir }}"
+    - "{{ kubeadm_masters_init_audit_log_directory }}"
+    - "{{ kubeadm_masters_init_kubeadm_tmp_dir }}"
+
+- name: Initialize API server cert SANs
+  ansible.builtin.set_fact:
+    kubeadm_masters_init_apiserver_cert_sans_effective: >-
+      {{
+        (
+          (kubeadm_masters_init_apiserver_cert_sans | default([]))
+          + [kubeadm_masters_init_cluster_api_hostname]
+          + ([cluster_public_api_fqdn] if (cluster_public_api_fqdn is defined and (cluster_public_api_fqdn | string | length > 0)) else [])
+          + [ansible_default_ipv4.address, inventory_hostname]
+        )
+        | reject('equalto', '')
+        | unique
+        | list
+      }}
+
+- name: Add load balancer endpoints to API server cert SANs
+  ansible.builtin.set_fact:
+    kubeadm_masters_init_apiserver_cert_sans_effective: >-
+      {{
+        (
+          kubeadm_masters_init_apiserver_cert_sans_effective
+          + [hostvars[item].get('ansible_host') | default(hostvars[item].get('ansible_default_ipv4', {}).get('address'), true) | default(item, true)]
+        )
+        | reject('equalto', '')
+        | unique
+        | list
+      }}
+  loop: "{{ groups.get('load_balancers', []) }}"
+
+- name: template kubeadm init config
+  ansible.builtin.template:
+    src: "init-kubeadm.yaml.j2"
+    dest: "/etc/kubernetes/kubeadm/init-kubeadm.yaml"
+    owner: root
+    group: root
+    mode: 0600
+  notify:
+    - kubeadm upgrade
+
+- name: copy audit policy
+  ansible.builtin.copy:
+    src: policy.yaml
+    dest: "{{ kubeadm_masters_init_audit_config }}"
+    owner: root
+    group: root
+    mode: 0600
+  when:
+    - kubeadm_masters_init_audit_enabled | bool
+  notify:
+    - kubeadm upgrade
+
+- name: init first master
+  run_once: true
+  ansible.builtin.command:
+    argv:
+      - kubeadm
+      - init
+      - --config
+      - /etc/kubernetes/kubeadm/init-kubeadm.yaml
+      - --v=5
+    creates: /etc/kubernetes/admin.conf
+  no_log: "{{ kubeadm_masters_init_no_log }}"
+  register: kubeadm_init
+
+- name: fetch bootstrap token
+  run_once: true
+  ansible.builtin.command:
+    cmd: >-
+      kubeadm token create --config /etc/kubernetes/kubeadm/init-kubeadm.yaml --v=5
+  register: kubeadm_masters_init_join_command
+  changed_when: false
+  no_log: "{{ kubeadm_masters_init_no_log }}"
+
+- name: upload certificate to kubead-serts store
+  no_log: "{{ kubeadm_masters_init_no_log }}"
+  ansible.builtin.command:
+    cmd: >-
+      kubeadm init phase upload-certs --upload-certs --config /etc/kubernetes/kubeadm/init-kubeadm.yaml --v=5
+  changed_when: false
+  register: kubeadm_masters_init_certificates_key
+  run_once: true
+
+- name: get sha256 hash CA certificate
+  run_once: true
+  changed_when: false
+  ansible.builtin.raw: >-
+    openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
+  register: kubeadm_masters_init_ca_hash
+
+- name: template join kubeadm config
+  ansible.builtin.template:
+    src: join-kubeadm.yaml.j2
+    dest: /etc/kubernetes/kubeadm/join-kubeadm.yaml
+    owner: root
+    group: root
+    mode: 0600
+  no_log: "{{ kubeadm_masters_init_no_log }}"
+
+- name: join other masters to cluster
+  ansible.builtin.command:
+    argv:
+      - kubeadm
+      - join
+      - --config
+      - /etc/kubernetes/kubeadm/join-kubeadm.yaml
+    creates: /etc/kubernetes/admin.conf
+  no_log: "{{ kubeadm_masters_init_no_log }}"
+  register: kubeadm_join
+
+- name: create cloud-manager user
+  run_once: true
+  no_log: "{{ kubeadm_masters_init_no_log }}"
+  ansible.builtin.command:
+    cmd: >-
+      kubeadm kubeconfig user --client-name cloud-manager --config /etc/kubernetes/kubeadm/init-kubeadm.yaml --validity-period 1h --org 'system:masters'
+  register: kubeadm_temp_config
+  changed_when: false
+
+- name: create kubeconfig directory
+  connection: local
+  become: "{{ kubeadm_masters_init_become }}"
+  run_once: true
+  ansible.builtin.file:
+    path: "{{ kubeadm_masters_init_kubeconfig | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: copy token to controller
+  become: "{{ kubeadm_masters_init_become }}"
+  connection: local
+  run_once: true
+  no_log: "{{ kubeadm_masters_init_no_log }}"
+  copy:
+    content: "{{ kubeadm_temp_config.stdout }}"
+    dest: "{{ kubeadm_masters_init_kubeconfig }}"
+    mode: "0755"

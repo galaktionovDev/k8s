@@ -1,0 +1,65 @@
+{% if groups[kubeadm_masters_init_masters_group_name] | length > 1 %}
+spec:
+  replicas: 2
+  strategy:
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    spec:
+      dnsPolicy: Default
+      nodeSelector: {{ kubeadm_masters_init_coredns_nodeselectors | from_yaml }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: k8s-app
+                    operator: In
+                    values:
+                      - kube-dns
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: coredns
+          image: {{ cluster_registry }}/{{ coredns_image }}
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add: ["NET_BIND_SERVICE"]
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 70Mi
+            limits:
+              memory: 170Mi
+{% else %}
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    spec:
+      dnsPolicy: Default
+      nodeSelector: {{ kubeadm_masters_init_coredns_nodeselectors | from_yaml }}
+      containers:
+        - name: coredns
+          image: {{ cluster_registry }}/{{ coredns_image }}
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add: ["NET_BIND_SERVICE"]
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 70Mi
+            limits:
+              memory: 170Mi
+{% endif %}

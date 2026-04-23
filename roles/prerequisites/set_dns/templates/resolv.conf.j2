@@ -1,0 +1,7 @@
+{{ set_dns_ansible_managed }}
+{% for server in set_dns_ip %}
+nameserver {{ server }}
+{% endfor %}
+{% if set_dns_domains | length > 0 %}
+search {{ set_dns_domains | join(" ")  }}
+{% endif %}

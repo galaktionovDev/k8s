@@ -1,0 +1,7 @@
+---
+kubectl_version: "{{ k8s_version | default('1.22.7') }}*"
+kubectl_auto_completion: true
+kubectl_auto_completion_addition_packages:
+  - bash-completion
+kubectl_auto_completion_path: /etc/bash_completion.d/kubectl
+kubectl_auto_completion_force: false

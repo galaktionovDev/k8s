@@ -1,0 +1,62 @@
+---
+
+- name: "Create {{ kube_metrics_namespace }} directory"
+  run_once: true
+  connection: local
+  file:
+    path: "{{ kube_metrics_config_path }}"
+    state: directory
+    mode: "0755"
+
+- name: "Create namespace {{ kube_metrics_namespace }}"
+  connection: local
+  run_once: true
+  kubernetes.core.k8s:
+    name: "{{ kube_metrics_namespace }}"
+    kind: Namespace
+    state: present
+    kubeconfig: "{{ kube_metrics_kubeconfig }}"
+
+- name: "Patch namespace annotation {{ kube_metrics_namespace }}"
+  connection: local
+  run_once: true
+  kubernetes.core.k8s:
+    name: "{{ kube_metrics_namespace }}"
+    kind: Namespace
+    state: patched
+    definition:
+      metadata:
+        annotations:
+          openshift.io/requester: 'system:admin'
+    kubeconfig: "{{ kube_metrics_kubeconfig }}"
+
+- name: "template kube_metrics helm values"
+  run_once: true
+  connection: local
+  template:
+    src: kube_metrics-values.yml.j2
+    dest: "{{ kube_metrics_config_path }}/kube_metrics-values.yaml"
+    mode: "0755"
+  notify:
+    - helm upgrade kube_metrics
+
+- name: "force helm upgrade"
+  connection: local
+  run_once: true
+  ansible.builtin.command:
+    cmd: 'true'
+  when:
+    - kube_metrics_helm_force | bool
+  notify:
+    - helm upgrade kube_metrics
+
+- name: announce  feature resources
+  ansible.builtin.import_role:
+    name: common/feature_resources
+  vars:
+    feature_resources:
+      - type: infra
+        cpu: "{{ kube_metrics_resource_req_cpu }}"
+        memory: "{{ kube_metrics_resource_req_memory }}"
+  when:
+    - kube_metrics_helm_force | bool

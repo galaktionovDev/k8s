@@ -1,0 +1,6 @@
+# This file managed by containerization group playbook
+{% if apt_install_package_version %}
+Package: {{ apt_install_package_name }}
+Pin: version {{ apt_install_package_version }}
+Pin-Priority: 1002
+{% endif %}

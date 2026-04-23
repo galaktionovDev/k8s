@@ -1,0 +1,3 @@
+---
+pull_images_list: []
+pull_image_registry: "{{ cluster_registry | default('') }}"

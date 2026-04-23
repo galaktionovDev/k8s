@@ -1,0 +1,6 @@
+---
+apt_install: []
+apt_install_cache_valid_time: 600
+apt_install_force: false
+apt_install_state: present
+apt_install_purge: false

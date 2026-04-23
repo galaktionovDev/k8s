@@ -1,0 +1,23 @@
+---
+- name: "set_hostname | Set hostname"
+  become: true
+  hostname:
+    name: '{{ inventory_hostname }}'
+
+- name: "set_hostname | update the hostname - /etc/hostname file"
+  become: true
+  template:
+    src: hostname.j2
+    dest: /etc/hostname
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "set_hostname | update the hostname - /etc/hosts file"
+  become: true
+  template:
+    src: hosts.j2
+    dest: /etc/hosts
+    owner: root
+    group: root
+    mode: "0644"

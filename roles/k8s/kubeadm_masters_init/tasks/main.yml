@@ -1,0 +1,58 @@
+---
+
+- name: import init tasks
+  import_tasks: init.yml
+
+- name: wait internal api endpoint
+  ansible.builtin.uri:
+    url: "https://{{ kubeadm_masters_init_cluster_api_hostname }}:{{ kubeadm_masters_init_api_port }}/readyz"
+    status_code:
+      - 200
+    validate_certs: false
+  register: api_response
+  until: api_response.status == 200
+  retries: 60
+  delay: 1
+  when:
+    - not ansible_check_mode
+
+- name: export kubeconfig environment
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    line: "export KUBECONFIG=/etc/kubernetes/admin.conf"
+    mode: "0644"
+    create: true
+
+- name: patch coredns configmap
+  become: "{{ kubeadm_masters_init_become }}"
+  connection: local
+  run_once: true
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: ConfigMap
+    state: present
+    name: coredns
+    kubeconfig: "{{ kubeadm_masters_init_kubeconfig }}"
+    namespace: "kube-system"
+    definition: "{{ lookup('template', 'coredns_configmap_patch.yaml.j2') }}"
+
+- name: patch coredns deployment
+  become: "{{ kubeadm_masters_init_become }}"
+  connection: local
+  run_once: true
+  kubernetes.core.k8s:
+    api_version: apps/v1
+    kind: Deployment
+    state: patched
+    merge_type: strategic-merge
+    name: coredns
+    kubeconfig: "{{ kubeadm_masters_init_kubeconfig }}"
+    namespace: "kube-system"
+    definition: "{{ lookup('template', 'coredns_patch.yaml.j2') }}"
+
+- name: set cloud stats
+  run_once: true
+  set_stats:
+    data:
+      config:
+        api_url: "https://{{ cluster_public_api_fqdn }}:{{ cluster_public_api_port }}"

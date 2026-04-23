@@ -1,0 +1,43 @@
+---
+- name: import apt install
+  vars:
+    apt_install:
+      - "kubelet={{ kubelet_version }}"
+  ansible.builtin.import_role:
+    name: common/apt_install
+  notify:
+    - restart kubelet
+
+- name: Remove swapfile from /etc/fstab
+  ansible.posix.mount:
+    name: "{{ item }}"
+    fstype: swap
+    state: absent
+  loop:
+    - swap
+    - none
+
+- name: systemd swap disable  # noqa ignore-errors
+  systemd:
+    name: swap.target
+    masked: true
+    state: stopped
+    enabled: false
+  ignore_errors: true
+
+- name: check swap
+  ansible.builtin.command:
+    cmd: /sbin/swapoff -a
+  changed_when: false
+
+- name: ensure kubelet is enabled
+  ansible.builtin.systemd:
+    name: kubelet.service
+    enabled: true
+
+- name: kubelet force restart
+  command: /bin/true
+  when:
+    - kubelet_force_restart
+  notify:
+    - restart kubelet

@@ -1,0 +1,8 @@
+# {{ ansible_managed }}
+Acquire::http::proxy "{{ set_repositories_apt_proxy }}";
+Acquire::https::proxy "{{ set_repositories_apt_proxy }}";
+
+{% for no_proxy in set_repositories_apt_no_proxy %}
+Acquire::http::Proxy::{{ no_proxy }} DIRECT;
+Acquire::https::Proxy::{{ no_proxy }} DIRECT;
+{% endfor %}

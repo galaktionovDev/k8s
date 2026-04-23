@@ -1,0 +1,7 @@
+---
+- name: Create admin ServiceAccount with cluster-admin privileges
+  hosts: masters[0]
+  gather_facts: false
+  become: true
+  roles:
+    - k8s/create_admin_sa

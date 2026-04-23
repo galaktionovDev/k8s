@@ -1,0 +1,16 @@
+---
+helm_path: /app/helm
+helm_version: v3.8.2
+helm_url: "https://get.helm.sh/"
+helm_diff_url: https://github.com/databus23/helm-diff/releases/download/v3.4.2
+helm_diff_filename: helm-diff-linux-amd64.tgz
+helm_install_diff: false
+helm_completion: false
+helm_url_headers: {}
+helm_diff_url_headers: {}
+helm_install_proxy: ""
+helm_install_bin: "{{ cluster_helm_bin | default('/usr/local/bin/helm') }}"
+helm_install_file_owner: "{{ cluster_files_owner | default('root') }}"
+helm_install_file_group: "{{ cluster_files_group | default('root') }}"
+helm_install_validate_certs: true
+helm_install: false

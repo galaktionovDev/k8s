@@ -1,0 +1,25 @@
+---
+- name: Create Namespace {{ cert_manager_namespace }}
+  connection: local
+  become: "{{ cert_manager_become }}"
+  kubernetes.core.k8s:
+    name: "{{ cert_manager_namespace }}"
+    kind: Namespace
+    state: present
+    kubeconfig: "{{ cert_manager_kubeconfig }}"
+  notify: Deploy {{ cert_manager_name }}
+
+- name: Add labels to Namespace {{ cert_manager_namespace }}
+  connection: local
+  become: "{{ cert_manager_become }}"
+  kubernetes.core.k8s:
+    name: "{{ cert_manager_namespace }}"
+    kind: Namespace
+    state: patched
+    definition:
+      metadata:
+        annotations:
+          openshift.io/requester: 'system:admin'
+        labels: "{{ cert_manager_namespace_labels | from_yaml }}"
+    kubeconfig: "{{ cert_manager_kubeconfig }}"
+  when: cert_manager_namespace_labels | length > 0

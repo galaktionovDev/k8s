@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: feature_resources
+  author: EG
+  description: Calculate allocated resources
+  namespace: development
+  company: CLD
+  galaxy_tags:
+    - resources
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+  license: MIT
+
+  min_ansible_version: "2.9"

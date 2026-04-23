@@ -1,0 +1,94 @@
+---
+- name: create directory for cilium cli
+  ansible.builtin.file:
+    path: "{{ cilium_cli_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    state: directory
+
+- name: "Fetch cilium cli tarball"
+  get_url:
+    url: "{{ cilium_cli_url }}/cilium-linux-amd64.tar.gz"
+    dest: "{{ cilium_cli_path }}/cilium-{{ cilium_image_tag }}-linux-amd64.tar.gz"
+    owner: root
+    group: root
+    mode: "0644"
+    headers: "{{ cilium_cli_url_headers }}"
+    validate_certs: false
+  no_log: "{{ cluster_no_log | default('true') }}"
+  environment:
+    http_proxy: "{{ cilium_cli_install_proxy }}"
+    https_proxy: "{{ cilium_cli_install_proxy }}"
+
+- name: "Fetch hubble cli tarball"
+  get_url:
+    url: "{{ hubble_cli_url }}/hubble-linux-amd64.tar.gz"
+    dest: "{{ cilium_cli_path }}/hubble-{{ cilium_hubble_relay_image_tag }}-linux-amd64.tar.gz"
+    owner: root
+    group: root
+    mode: "0644"
+    headers: "{{ cilium_cli_url_headers }}"
+    validate_certs: false
+  no_log: "{{ cluster_no_log | default('true') }}"
+  environment:
+    http_proxy: "{{ cilium_cli_install_proxy }}"
+    https_proxy: "{{ cilium_cli_install_proxy }}"
+
+- name: "Unpack cilium cli tarball's"
+  unarchive:
+    src: "{{ cilium_cli_path }}/{{ item }}-{{ cilium_image_tag }}-linux-amd64.tar.gz"
+    dest: "{{ cilium_cli_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+  with_items:
+    - "cilium"
+    - "hubble"
+
+- name: "Make link to cilium binaries"
+  ansible.builtin.file:
+    src: "{{ cilium_cli_path }}/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+    state: link
+  with_items:
+    - "cilium"
+    - "hubble"
+
+- name: get cilium cli  completion source
+  ansible.builtin.command:
+    cmd: "cilium completion bash"
+  register: cilium_completion_source
+  changed_when: false
+
+- name: get hubble cli completion source
+  ansible.builtin.command:
+    cmd: "hubble completion bash"
+  register: hubble_completion_source
+  changed_when: false
+
+- name: save bash auto completion file for cilium
+  ansible.builtin.copy:
+    content: "{{ cilium_completion_source.stdout }}"
+    dest: /etc/bash_completion.d/cilium
+    mode: "0755"
+    owner: root
+    group: root
+  when:
+    - cilium_completion_source is defined
+    - cilium_completion_source.stdout is defined
+
+- name: save bash auto completion file for hubble
+  ansible.builtin.copy:
+    content: "{{ hubble_completion_source.stdout }}"
+    dest: /etc/bash_completion.d/hubble
+    mode: "0755"
+    owner: root
+    group: root
+  when:
+    - hubble_completion_source is defined
+    - hubble_completion_source.stdout is defined

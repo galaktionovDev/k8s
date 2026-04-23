@@ -1,0 +1,206 @@
+{% if cilium_k8s_api_host | length > 0 %}
+k8sServiceHost: {{ cilium_k8s_api_host }}
+k8sServicePort: {{ cilium_k8s_api_port }}
+{% endif %}
+
+serviceAccounts:
+  cilium:
+    create: true
+    name: cilium
+    annotations: {}
+  operator:
+    create: true
+    name: cilium-operator
+    annotations: {}
+{% if cilium_hubble_enabled | bool %}
+  relay:
+    create: true
+    name: hubble-relay
+    annotations: {}
+  ui:
+    create: true
+    name: hubble-ui
+    annotations: {}
+{% endif %}
+
+agent: true
+
+rollOutCiliumPods: true
+
+kubeProxyReplacement: true
+
+localRedirectPolicy: true
+
+hostServices:
+  enabled: true
+  hostNamespaceOnly: true
+  protocols: tcp,udp
+
+resources:
+  requests:
+    cpu: {{ cilium_agent_request_cpu }}
+    memory: {{ cilium_agent_request_memory }}
+image:
+  repository: {{ cilium_image_repository }}/{{ cilium_image_name }}
+  tag: {{ cilium_image_tag }}
+  useDigest: false
+
+envoy:
+  image:
+    repository: {{ cilium_envoy_image_repository }}/{{ cilium_envoy_image_name }}
+    tag: {{ cilium_envoy_image_tag }}
+    useDigest: false
+
+tolerations:
+  - operator: Exists
+
+# -- Pod affinity for cilium-agent.
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/os
+              operator: In
+              values:
+                - linux
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: k8s-app
+          operator: In
+          values:
+          - cilium
+      topologyKey: kubernetes.io/hostname
+
+updateStrategy:
+  rollingUpdate:
+    maxUnavailable: 2
+
+bpf:
+  masquerade: {{ cilium_egressip_enabled | lower }}
+
+hubble:
+
+  enabled: {{ cilium_hubble_enabled | lower }}
+  metrics:
+    enabled:
+      - dns:query;ignoreAAAA
+      - drop
+      - tcp
+      - flow
+      - icmp
+      - http
+
+  serviceMonitor:
+    enabled: {{ cilium_monitoring_features | lower }}
+    labels:
+      release: {{ monitoring_name | default('monitoring') }}
+  relay:
+    enabled: {{ cilium_hubble_enabled | lower }}
+    rollOutPods: true
+    image:
+      repository: {{ cilium_hubble_relay_image_repository }}/{{ cilium_hubble_relay_image_name }}
+      tag: {{ cilium_hubble_relay_image_tag }}
+      useDigest: false
+    nodeSelector:
+      {{ cilium_hubble_relay_node_selector | to_nice_yaml(indent=6) }}
+
+  ui:
+    # -- Whether to enable the Hubble UI.
+    nodeSelector:
+      {{ cilium_hubble_relay_node_selector | to_nice_yaml(indent=6) }}
+    enabled: {{ cilium_hubble_enabled | lower }}
+    rollOutPods: true
+
+    backend:
+      image:
+        repository: {{ cilium_hubble_ui_backend_image_repository }}/{{ cilium_hubble_ui_backend_image_name }}
+        tag: {{ cilium_hubble_ui_backend_image_tag }}
+
+    frontend:
+      image:
+        repository: {{ cilium_hubble_ui_image_repository }}/{{ cilium_hubble_ui_image_name }}
+        tag: {{ cilium_hubble_ui_image_tag }}
+
+    proxy:
+      image:
+        repository: {{ cilium_envoy_image_repository }}/{{ cilium_envoy_image_name }}
+        tag: {{ cilium_envoy_image_tag }}
+
+    ingress:
+      enabled: true
+{% if cilium_hubble_enabled | bool and not cillium_use_itcacmcpl | bool %}
+      annotations:
+        cert-manager.io/cluster-issuer: {{ cilium_cert_manager_issuer_name }}
+        cert-manager.io/common-name: {{ cilium_hubble_external_hostname }}
+        cert-manager.io/duration: 4380h
+        cert-manager.io/usages: 'digital signature,key encipherment,server auth,client auth'
+{% endif %}
+      ingressClassName: infra
+      hosts:
+        - {{ cilium_hubble_external_hostname }}
+      tls:
+       - secretName: {{ cilium_hubble_external_hostname }}-tls
+         hosts:
+           - {{ cilium_hubble_external_hostname }}
+
+ipam:
+  # -- Configure IP Address Management mode.
+  # ref: https://docs.cilium.io/en/stable/concepts/networking/ipam/
+  mode: "cluster-pool"
+  operator:
+    # -- IPv4 CIDR list range to delegate to individual nodes for IPAM.
+    clusterPoolIPv4PodCIDRList:
+      - "{{ cilium_pod_subnet_cidr }}"
+    # -- IPv4 CIDR mask size to delegate to individual nodes for IPAM.
+    clusterPoolIPv4MaskSize: 24
+    # -- Deprecated in favor of ipam.operator.clusterPoolIPv6PodCIDRList.
+    # IPv6 CIDR range to delegate to individual nodes for IPAM.
+    clusterPoolIPv6PodCIDR: "fd00::/104"
+     # -- IPv6 CIDR list range to delegate to individual nodes for IPAM.
+    clusterPoolIPv6PodCIDRList: []
+    # -- IPv6 CIDR mask size to delegate to individual nodes for IPAM.
+    clusterPoolIPv6MaskSize: 120
+
+egressGateway:
+  enabled: {{ cilium_egressip_enabled | lower }}
+
+prometheus:
+  enabled: {{ cilium_monitoring_features | lower }}
+  serviceMonitor:
+    enabled: {{ cilium_monitoring_features | lower }}
+    labels:
+      release: {{ monitoring_name | default('monitoring') }}
+
+routingMode: "tunnel"
+tunnelProtocol: "{{ cilium_tunnel_name }}"
+
+operator:
+  enabled: true
+  rollOutPods: true
+  nodeSelector:
+    {{ cilium_operator_node_selector | to_nice_yaml(indent=4) }}
+  image:
+    repository: {{ cilium_operator_generic_image_repository }}/{{ cilium_operator_generic_image_name | replace('-generic','' ) }}
+    tag: {{ cilium_operator_generic_image_tag }}
+    useDigest: false
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+    - key: node.kubernetes.io/not-ready
+      operator: Exists
+      effect: NoSchedule
+  prometheus:
+    enabled: {{ cilium_monitoring_features | lower }}
+    serviceMonitor:
+      enabled: {{ cilium_monitoring_features | lower }}
+      labels:
+        release: {{ monitoring_name | default('monitoring') }}
+  resources:
+    requests:
+      cpu: {{ cilium_operator_request_cpu }}
+      memory: {{ cilium_operator_request_memory }}
+  replicas: {% if groups['masters'] | default('{}') | length > 1 %}2{% else %}1{% endif %}

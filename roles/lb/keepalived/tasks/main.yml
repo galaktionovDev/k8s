@@ -1,0 +1,64 @@
+---
+- name: Resolve keepalived settings
+  ansible.builtin.set_fact:
+    keepalived_effective_vip: "{{ keepalived_vip | default(cluster_api_vip | default('', true), true) }}"
+    keepalived_effective_interface: "{{ keepalived_interface }}"
+
+- name: Compute keepalived state/priority
+  ansible.builtin.set_fact:
+    keepalived_effective_priority: "{{ keepalived_priority | default(200 - (groups[keepalived_group_name].index(inventory_hostname) | int * 10)) }}"
+    keepalived_effective_state: "{{ keepalived_state | default('MASTER' if (groups[keepalived_group_name].index(inventory_hostname) | int == 0) else 'BACKUP') }}"
+
+- name: Build keepalived unicast peers
+  ansible.builtin.set_fact:
+    keepalived_unicast_peers_effective: "{{ keepalived_unicast_peers | default(groups[keepalived_group_name] | difference([inventory_hostname]) | map('extract', hostvars, 'ansible_default_ipv4') | map(attribute='address') | list) }}"
+
+- name: Validate keepalived settings
+  ansible.builtin.assert:
+    that:
+      - keepalived_effective_interface | length > 0
+      - keepalived_effective_vip | length > 0
+      - keepalived_virtual_router_id | int > 0
+    fail_msg: "keepalived_interface, keepalived_vip (or cluster_api_vip), and keepalived_virtual_router_id are required."
+  when: keepalived_enabled | bool
+
+- name: Install keepalived
+  ansible.builtin.apt:
+    name: keepalived
+    state: present
+    update_cache: true
+    cache_valid_time: 60
+  when: keepalived_enabled | bool
+
+- name: Ensure keepalived script directory exists
+  ansible.builtin.file:
+    path: /usr/local/bin
+    state: directory
+    mode: "0755"
+  when: keepalived_enabled | bool
+
+- name: Install keepalived haproxy check script
+  ansible.builtin.copy:
+    src: keepalived_check_haproxy.sh
+    dest: /usr/local/bin/keepalived_check_haproxy.sh
+    owner: root
+    group: root
+    mode: "0755"
+  when: keepalived_enabled | bool
+
+- name: Template keepalived config
+  ansible.builtin.template:
+    src: keepalived.conf.j2
+    dest: /etc/keepalived/keepalived.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart keepalived
+  when: keepalived_enabled | bool
+
+- name: Ensure keepalived is enabled and running
+  ansible.builtin.systemd:
+    name: keepalived
+    enabled: true
+    state: started
+  when: keepalived_enabled | bool

@@ -1,0 +1,13 @@
+---
+# ServiceAccount parameters
+admin_sa_name: admin-cld-sa
+admin_sa_namespace: kube-system
+
+# Kubeconfig path
+admin_sa_kubeconfig: "{{ cluster_kubeconfig | default('/etc/kubernetes/admin.conf') }}"
+
+# Become for local connection
+admin_sa_become: "{{ cluster_become | default('false') }}"
+
+# No log for sensitive data
+admin_sa_no_log: "{{ cluster_no_log | default('true') }}" 

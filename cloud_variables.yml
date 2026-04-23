@@ -1,0 +1,143 @@
+---
+- hosts: all
+  gather_facts: true
+  ignore_errors: true
+  no_log: "{{ cluster_no_log | default('true') }}"
+  tasks:
+    - name: choose cluster_variables
+      set_fact:
+        cluster_variables: "{{ cluster_net_segment.split('-') | first | lower }}"
+  tags:
+    - always
+    - cloud_vars
+
+- hosts: all
+  gather_facts: false
+  ignore_errors: true
+  no_log: "{{ cluster_no_log | default('true') }}"
+  tasks:
+    - name: include common all
+      include_vars: "cloud_variables/common/all.yml"
+    - name: "include {{ cluster_variables }} all vault"
+      include_vars: "cloud_variables/{{ cluster_variables }}/all_vault.yml"
+    - name: include {{ cluster_variables }} all
+      include_vars: "cloud_variables/{{ cluster_variables }}/all.yml"
+  tags:
+    - always
+    - cloud_vars
+
+- hosts: load_balancers
+  gather_facts: false
+  ignore_errors: true
+  no_log: "{{ cluster_no_log | default('true') }}"
+  tasks:
+    - name: include common load_balancers
+      include_vars: "cloud_variables/common/load_balancers.yml"
+  tags:
+    - always
+    - cloud_vars
+
+- hosts: keepalived
+  gather_facts: false
+  ignore_errors: true
+  no_log: "{{ cluster_no_log | default('true') }}"
+  tasks:
+    - name: include common keepalived
+      include_vars: "cloud_variables/common/keepalived.yml"
+  tags:
+    - always
+    - cloud_vars
+
+- hosts: k8s
+  gather_facts: false
+  ignore_errors: true
+  no_log: "{{ cluster_no_log | default('true') }}"
+  tasks:
+    - name: "include common k8s_vault"
+      include_vars: "cloud_variables/common/k8s_vault.yml"
+    - name: "include common k8s"
+      include_vars: "cloud_variables/common/k8s.yml"
+    - name: "include {{ cluster_variables }} k8s_vault"
+      include_vars: "cloud_variables/{{ cluster_variables }}/k8s_vault.yml"
+    - name: "include {{ cluster_variables }} k8s"
+      include_vars: "cloud_variables/{{ cluster_variables }}/k8s.yml"
+  tags:
+    - always
+    - cloud_vars
+
+- hosts: masters
+  gather_facts: false
+  ignore_errors: true
+  no_log: "{{ cluster_no_log | default('true') }}"
+  tasks:
+    - name: "include common masters"
+      include_vars: "cloud_variables/common/masters.yml"
+  tags:
+    - always
+    - cloud_vars
+
+- hosts: workers
+  gather_facts: false
+  ignore_errors: true
+  no_log: "{{ cluster_no_log | default('true') }}"
+  tasks:
+    - name: "include common workers"
+      include_vars: "cloud_variables/common/workers.yml"
+  tags:
+    - always
+    - cloud_vars
+
+- hosts: ingress
+  gather_facts: false
+  ignore_errors: true
+  no_log: "{{ cluster_no_log | default('true') }}"
+  tasks:
+    - name: "include common ingress"
+      include_vars: "cloud_variables/common/ingress.yml"
+  tags:
+    - always
+    - cloud_vars
+
+- hosts: infra
+  no_log: "{{ cluster_no_log | default('true') }}"
+  gather_facts: false
+  ignore_errors: true
+  tasks:
+    - name: "include common infra"
+      include_vars: "cloud_variables/common/infra.yml"
+  tags:
+    - always
+    - cloud_vars
+
+- hosts: monitoring
+  no_log: "{{ cluster_no_log | default('true') }}"
+  gather_facts: false
+  ignore_errors: true
+  tasks:
+    - name: "include common monitoring"
+      include_vars: "cloud_variables/common/monitoring.yml"
+  tags:
+    - always
+    - cloud_vars
+
+- hosts: all
+  gather_facts: false
+  ignore_errors: true
+  no_log: "{{ cluster_no_log | default('true') }}"
+  tasks:
+    - name: include segments variables
+      include_vars: "cloud_variables/segments/{{ cluster_net_segment }}.yml"
+  tags:
+    - always
+    - cloud_vars
+
+- hosts: all
+  no_log: "{{ cluster_no_log | default('true') }}"
+  gather_facts: false
+  ignore_errors: true
+  tasks:
+    - name: "include local all"
+      include_vars: "cloud_variables/local/all.yml"
+  tags:
+    - always
+    - cloud_vars
