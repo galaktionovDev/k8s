@@ -1,6 +1,6 @@
 ---
 - name: Update trusted CA
-  command: /usr/sbin/update-ca-certificates
+  command: "{{ '/usr/sbin/update-ca-certificates' if ansible_distribution in ['Debian', 'Ubuntu'] else '/usr/bin/update-ca-trust' }}"
   register: out_update_ca
   changed_when: out_update_ca.rc == 0
   notify:

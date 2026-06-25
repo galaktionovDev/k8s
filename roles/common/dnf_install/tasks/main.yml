@@ -1,0 +1,36 @@
+- name: ensure dnf preferences directory exists
+  become: true
+  file:
+    path: /etc/dnf/preferences.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: dnf_install | length > 0
+
+- name: ensure dnf preferences are configured
+  become: true
+  template:
+    src: etc/dnf/preferences.d/package_name.j2
+    dest: "/etc/dnf/preferences.d/ansible-{{ dnf_install_preference_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    dnf_install_package_splitted: "{{ item.split('=') }}"
+    dnf_install_package_name: "{{ dnf_install_package_splitted[0] }}"
+    dnf_install_package_version: "{{ dnf_install_package_splitted[1] | default(None) }}"
+    dnf_install_preference_file: "{{ dnf_install_package_name | replace('.', '-') }}"
+  loop: "{{ dnf_install }}"
+  when: dnf_install | length > 0
+
+- name: >-
+    ensure required dnf packages are installed:
+    {{ dnf_install | join(', ') if dnf_install else '[empty list of packages]' }}
+  ansible.builtin.dnf:
+    name: "{{ dnf_install }}"
+    update_cache: true
+    state: "{{ dnf_install_state | default('present') }}"
+  when:
+    - not ansible_check_mode
+    - dnf_install | length > 0

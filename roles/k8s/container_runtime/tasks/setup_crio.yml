@@ -44,13 +44,24 @@
     name: common/apt_install
   when: ansible_distribution.split(' ') | first | lower in ['astra']
 
-- name: Setup_crio | Install packages
+- name: Setup_crio | Install apt packages
   vars:
     apt_install: "{{ cr_crio_packages_names }}"
   ansible.builtin.import_role:
     name: common/apt_install
   notify:
     - "restart crio"
+  when: ansible_distribution.split(' ') | first | lower in ['ubuntu', 'debian']
+
+- name: Setup_crio | Install dnf packages
+  vars:
+    dnf_install: "{{ cr_crio_dnf_packages_names }}"
+  ansible.builtin.import_role:
+    name: common/dnf_install
+  notify:
+    - "restart crio"
+  when: ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
+
 
 - name: Setup_crio | Create directories (logs, storage, etc)
   file:

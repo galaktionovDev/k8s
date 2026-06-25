@@ -28,7 +28,18 @@
     state: present
     update_cache: true
     cache_valid_time: 60
-  when: keepalived_enabled | bool
+  when:
+    - keepalived_enabled | bool
+    - ansible_distribution.split(' ') | first | lower in ['ubuntu', 'astra', 'debian']
+
+- name: Install keepalived
+  ansible.builtin.yum:
+    name: keepalived
+    state: present
+    update_cache: true
+  when:
+    - keepalived_enabled | bool
+    - ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
 
 - name: Ensure keepalived script directory exists
   ansible.builtin.file:

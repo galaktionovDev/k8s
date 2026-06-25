@@ -48,13 +48,33 @@
     fail_msg: "Resolved haproxy_frontends/haproxy_backends are invalid. Provide list-of-mapping values."
   when: haproxy_enabled | bool
 
-- name: Install HAProxy
+- name: Install HAProxy (Debian)
   ansible.builtin.apt:
     name: haproxy
     state: present
     update_cache: true
     cache_valid_time: 60
-  when: haproxy_enabled | bool
+  when:
+    - haproxy_enabled | bool
+    - ansible_distribution.split(' ') | first | lower in ['ubuntu', 'astra', 'debian']
+
+- name: Install python3-libselinux (RHEL)
+  ansible.builtin.yum:
+    name: python3-libselinux
+    state: present
+    update_cache: true
+  when:
+    - haproxy_enabled | bool
+    - ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
+
+- name: Install HAProxy (RHEL)
+  ansible.builtin.yum:
+    name: haproxy
+    state: present
+    update_cache: true
+  when:
+    - haproxy_enabled | bool
+    - ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
 
 - name: Template HAProxy config
   ansible.builtin.template:
@@ -66,9 +86,102 @@
   notify: restart haproxy
   when: haproxy_enabled | bool
 
+- name: Get firewall status
+  ansible.builtin.service_facts:
+  no_log: true
+  register: service_firewall_facts
+  when: ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
+
+- name: Stop and disable firewalld
+  ansible.builtin.service:
+    name: firewalld
+    state: stopped
+    enabled: false
+  when:
+    - service_firewall_facts.ansible_facts.services['firewalld.service'] is defined
+    - service_firewall_facts.ansible_facts.services['firewalld.service']['status'] != 'not-found'
+
+- name: Configure SELinux
+  when:
+    - ansible_selinux is defined
+    - ansible_selinux.status != 'disabled'
+    - haproxy_enabled | bool
+  block:
+
+    - name: Install selinux packages(RHEL)
+      ansible.builtin.yum:
+        name: "{{ item }}"
+        state: present
+        update_cache: true
+      loop:
+        - "python3-policycoreutils"
+        - "python3-libselinux"
+        - "container-selinux"
+        #- "policycoreutils-python-utils"
+
+    - name: Set SELinux to permissive mode
+      ansible.builtin.selinux:
+        policy: targeted
+        state: permissive
+      ignore_errors: yes
+      register: selinux_permissive
+
+    - name: Allow HAProxy to listen on port 6443
+      community.general.seport:
+        ports: "6443"
+        proto: tcp
+        setype: "http_port_t"
+        state: present
+
+    - name: Add ports for Kubernetes and Cilium
+      community.general.seport:
+        ports: "{{ item.ports }}"
+        proto: "{{ item.proto }}"
+        setype: "container_port_t"
+        state: present
+      loop:
+        - { ports: "6443", proto: "tcp" }
+        - { ports: "10250", proto: "tcp" }
+        - { ports: "2379-2380", proto: "tcp" }
+        - { ports: "8472", proto: "udp" }
+        - { ports: "51871", proto: "udp" }
+        - { ports: "443", proto: "tcp" }
+        - { ports: "80", proto: "tcp" }
+
+    - name: Enable all container SELinux booleans
+      ansible.builtin.seboolean:
+        name: "{{ item }}"
+        state: yes
+        persistent: yes
+      loop:
+        - container_connect_any
+        - container_manage_cgroup
+        - haproxy_connect_any
+        - container_use_devices
+        - container_read_certs
+        - container_use_dri_devices
+
 - name: Ensure HAProxy is enabled and running
   ansible.builtin.systemd:
     name: haproxy
     enabled: true
     state: started
+  when: haproxy_enabled | bool
+
+- name: Configure HAProxy
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart haproxy
+  when: haproxy_enabled | bool
+
+- name: Enable and start HAProxy service
+  ansible.builtin.systemd:
+    name: haproxy
+    enabled: yes
+    state: started
+    daemon_reload: yes
   when: haproxy_enabled | bool

@@ -25,19 +25,35 @@
     state: present
   loop: "{{ cr_containerd_kernel_modules }}"
 
-- name: "Setup_containerd | Install containerd packages"
+- name: "Setup_containerd | Install containerd apt packages "
   become: true
-  apt:
+  ansible.builtin.apt:
     name: "{{ cr_containerd_packages_names }}"
     state: present
     update_cache: true
+  when: ansible_distribution.split(' ') | first | lower in ['ubuntu', 'astra', 'debian']
 
-- name: "Setup_containerd | Prevent containerd package update"
+- name: "Setup_containerd | Prevent containerd apt package update"
   become: true
-  apt:
+  ansible.builtin.apt:
     name: "{{ cr_containerd_hold_package_name }}"
     state: present
+  when: ansible_distribution.split(' ') | first | lower in ['ubuntu', 'astra', 'debian']
 
+- name: "Setup_containerd | Install containerd dnf packages "
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ cr_containerd_packages_names }}"
+    state: present
+    update_cache: true
+  when: ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
+
+- name: "Setup_containerd | Prevent containerd dnf package update"
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ cr_containerd_hold_package_name }}"
+    state: present
+  when: ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
 
 - name: "Setup_containerd | Create /etc/containerd directory"
   become: true

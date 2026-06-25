@@ -5,3 +5,12 @@
       - "kubeadm={{ kubeadm_version }}"
   ansible.builtin.import_role:
     name: common/apt_install
+  when: ansible_distribution.split(' ') | first | lower in ['ubuntu', 'astra', 'debian']
+
+- name: "Import dnf install"
+  vars:
+    dnf_install:
+      - "kubeadm-{{ kubeadm_version }}*"
+  ansible.builtin.import_role:
+    name: common/dnf_install
+  when: ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']

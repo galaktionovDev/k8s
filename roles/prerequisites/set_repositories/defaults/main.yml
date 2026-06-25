@@ -1,5 +1,25 @@
 ---
-set_repositories_requared_repo: []
+set_repositories_required_repo:
+  apt:
+    - name:  cld-repository
+      repo_string: "deb {{ nexus_url }}/repository/products-apt/ focal main"
+  yum:
+    el7:
+      - name:  cld-repository-el7
+        repo_string: "{{ nexus_url }}/repository/products-yum/el7/"
+        description: "cld repository el7"
+    el8:
+      - name:  cld-repository-el8
+        repo_string: "{{ nexus_url }}/repository/products-yum/el8/"
+        description: "cld repository el8"
+    el9:
+      - name:  cld-repository-el9
+        repo_string: "{{ nexus_url }}/repository/products-yum/el9/"
+        description: "cld repository el9"
+    el10:
+      - name:  cld-repository-el10
+        repo_string: "{{ nexus_url }}/repository/products-yum/el10/"
+        description: "cld repository el10"
 set_repositories_repo_keys: []
 set_repositories_apt_proxy: ""
 set_repositories_auth_keys: []
