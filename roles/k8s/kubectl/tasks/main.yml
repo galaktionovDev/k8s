@@ -5,6 +5,15 @@
       - "kubectl={{ kubectl_version }}"
   ansible.builtin.import_role:
     name: common/apt_install
+  when: ansible_distribution.split(' ') | first | lower in ['ubuntu', 'astra', 'debian']
+
+- name: "Import dnf install"
+  vars:
+    dnf_install:
+      - "kubectl-{{ kubectl_version  }}*"
+  ansible.builtin.import_role:
+    name: common/dnf_install
+  when: ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
 
 - name: include kubectl auto-completion
   ansible.builtin.import_tasks: autocompletion.yml

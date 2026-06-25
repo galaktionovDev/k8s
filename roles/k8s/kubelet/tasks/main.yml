@@ -7,6 +7,15 @@
     name: common/apt_install
   notify:
     - restart kubelet
+  when: ansible_distribution.split(' ') | first | lower in ['ubuntu', 'astra', 'debian']
+
+- name: "Import dnf install"
+  vars:
+    dnf_install:
+      - "kubelet-{{ kubelet_version }}*"
+  ansible.builtin.import_role:
+    name: common/dnf_install
+  when: ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
 
 - name: Remove swapfile from /etc/fstab
   ansible.posix.mount:

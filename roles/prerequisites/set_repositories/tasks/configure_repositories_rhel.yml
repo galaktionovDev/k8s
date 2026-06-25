@@ -1,0 +1,17 @@
+---
+
+- name: Find all YUM repo files
+  ansible.builtin.find:
+    paths: "/etc/yum.repos.d"
+    patterns: "*.repo"
+  register: repo_files
+
+- name: Delete all YUM repo files
+  ansible.builtin.file:
+    state: absent
+    path: "{{ item.path }}"
+  with_items: "{{ repo_files.files }}"
+
+- name: "set_repositories"
+  import_tasks: set_repositories_rhel.yml
+  when: set_repositories_required_repo | length > 0

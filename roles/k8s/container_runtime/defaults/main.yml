@@ -29,6 +29,11 @@ cr_crio_packages_names:
   - "cri-o=1.34.0-1.1"
   - "cri-tools=1.34.0-1.1"
 
+cr_crio_dnf_packages_names:
+  - "cri-o1.34"
+  - "cri-tools1.34"
+  - "runc"
+
 # cr_crio_hold_package_name:
 #   - "cri-o"
 

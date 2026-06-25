@@ -1,0 +1,4 @@
+---
+dnf_install: []
+dnf_install_force: false
+dnf_install_state: present

@@ -14,7 +14,7 @@
   loop: "{{ apt_install }}"
 
 - name: >-
-    ensure required packages are installed:
+    ensure required apt packages are installed:
     {{ apt_install | join(', ') if apt_install else '[empty list of packages]' }}
   ansible.builtin.apt:
     name: "{{ apt_install }}"

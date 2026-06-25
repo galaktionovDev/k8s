@@ -115,12 +115,34 @@ cluster_helm_data_dir: "{{ playbook_dir }}/cluster_config/{{ cluster_name }}/hel
 #  - "{{ hostvars[groups['masters'][0]]['ansible_default_ipv4']['address'] }} {{ cluster_api_fqdn }}"
 
 set_repositories_repo_keys:
-  - name: kubernetes
-    key_url: "https://{{ nexus_hostname }}/repository/products-raw/products-apt.public.gpg.key"
+  apt:
+    - name: cld-repository
+      key_url: "{{ nexus_url }}/repository/products-raw/products-apt.public.gpg.key"
+  yum:
+    - name:  cld-repository
+      key_url: "{{ nexus_url }}/repository/products-raw/products-apt.public.gpg.key"
 
-set_repositories_requared_repo:
-  - name: kubernetes
-    repo_string: "deb https://{{ nexus_hostname }}/repository/products-apt/ focal main"
+set_repositories_required_repo:
+  apt:
+    - name:  cld-repository
+      repo_string: "deb https://{{ nexus_hostname }}/repository/products-apt/ focal main"
+  yum:
+    el7:
+      - name:  cld-repository-el7
+        repo_string: "https://{{ nexus_hostname }}/repository/products-yum/el7/"
+        description: "cld repository el7"
+    el8:
+      - name:  cld-repository-el8
+        repo_string: "https://{{ nexus_hostname }}/repository/products-yum/el8/"
+        description: "cld repository el8"
+    el9:
+      - name:  cld-repository-el9
+        repo_string: "https://{{ nexus_hostname }}/repository/products-yum/el9/"
+        description: "cld repository el9"
+    el10:
+      - name:  cld-repository-el10
+        repo_string: "https://{{ nexus_hostname }}/repository/products-yum/el10/"
+        description: "cld repository el10"
 
 cluster_helm_repo: nexus-helm
 

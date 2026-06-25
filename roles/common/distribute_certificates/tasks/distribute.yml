@@ -10,7 +10,7 @@
     kubeconfig: "{{ distribute_certificates_kubeconfig }}"
   register: out_root_ca
 
-- name: Distribute CA content to master nodes
+- name: Distribute CA content to master nodes (Debian)
   copy:
     dest: /usr/local/share/ca-certificates/{{ distribute_certificates_cluster_name }}-{{ distribute_certificates_source }}-ca.crt
     content: '{{ out_root_ca | json_query(''resources[0].data."ca.crt"'') | b64decode }}'
@@ -18,3 +18,14 @@
     group: root
     mode: "0644"
   notify: Update trusted CA
+  when: ansible_distribution.split(' ') | first | lower in ['ubuntu', 'astra', 'debian']
+
+- name: Distribute CA content to master nodes (RHEL)
+  copy:
+    dest: /etc/pki/ca-trust/source/anchors/{{ distribute_certificates_cluster_name }}-{{ distribute_certificates_source }}-ca.crt
+    content: '{{ out_root_ca | json_query(''resources[0].data."ca.crt"'') | b64decode }}'
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Update trusted CA
+  when: ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']

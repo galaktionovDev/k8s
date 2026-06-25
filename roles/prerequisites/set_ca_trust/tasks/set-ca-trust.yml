@@ -1,10 +1,15 @@
 ---
+- name: "set_ca_trust | set ca certificates directory based on distribution"
+  become: true
+  set_fact:
+    ca_certificates_dir: "{{ '/usr/local/share/ca-certificates' if ansible_distribution in ['Debian', 'Ubuntu'] else '/usr/share/pki/ca-trust-source/anchors' if ansible_distribution in ['RedHat', 'CentOS'] else '/etc/pki/ca-trust/source/anchors' }}"
+  when: set_ca_trust_additional_ca is defined
 
 - name: "set_ca_trust | copy new trusted CA certificates"
   become: true
   copy:
     src: "{{ item.source_path }}"
-    dest: /usr/local/share/ca-certificates/{{ item.filename }}
+    dest: "{{ ca_certificates_dir }}/{{ item.filename }}"
     owner: root
     group: root
     mode: "0644"
@@ -18,8 +23,9 @@
 
 - name: "set_ca_trust | Update CA trusts"
   become: true
-  command: /usr/sbin/update-ca-certificates
+  command: "{{ '/usr/sbin/update-ca-certificates' if ansible_distribution in ['Debian', 'Ubuntu'] else '/usr/bin/update-ca-trust' }}"
   changed_when: false
+  when: set_ca_trust_additional_ca is defined
 
 - name: "set_ca_trust | Restart services"
   become: true

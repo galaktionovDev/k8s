@@ -1,0 +1,58 @@
+---
+
+- name: Display ansible_distribution_major_version
+  debug:
+    msg: "ansible_distribution_major_version is {{ ansible_distribution_major_version }}"
+
+- name: Determine the appropriate repo list
+  set_fact:
+    selected_repositories: "{{ set_repositories_required_repo.yum['el9'] if (ansible_distribution.split(' ') | first | lower == 'red' and ansible_distribution_major_version == '8') else set_repositories_required_repo.yum['el' + ansible_distribution_major_version] }}"
+
+- name: "set_repositories | add required repo from set_repositories_required_repo"
+  yum_repository:
+    name: "{{ item.name }}"
+    baseurl: "{{ item.repo_string }}"
+    description: "{{ item.description }}"
+    gpgcheck: no
+    enabled: yes
+    state: present
+    module_hotfixes: "{{ true if (ansible_distribution.split(' ') | first | lower == 'red' and ansible_distribution_major_version == '8') else omit }}"
+  when:
+    - item.name is defined
+    - item.repo_string is defined
+    - "ansible_distribution.split(' ') | first | lower not in ['centos']"
+  loop: "{{ selected_repositories }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: "set_repositories | add required repo from set_repositories_required_repo"
+  yum_repository:
+    name: "{{ item.name }}"
+    baseurl: "{{ item.repo_string }}"
+    description: "{{ item.description }}"
+    gpgcheck: no
+    enabled: yes
+    state: present
+    sslverify: no
+  when:
+    - item.name is defined
+    - item.repo_string is defined
+    - "ansible_distribution.split(' ') | first | lower in ['centos']"
+  loop: "{{ selected_repositories }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Update YUM cache for specific repos
+  yum:
+    update_cache: yes
+    disablerepo: '*'
+    enablerepo: "{{ item.name }}"
+  when:
+    - item.name is defined
+    - item.repo_string is defined
+  loop: "{{ selected_repositories }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+
+

@@ -59,17 +59,21 @@
     - "cilium"
     - "hubble"
 
-- name: get cilium cli  completion source
+- name: get cilium cli completion source
   ansible.builtin.command:
     cmd: "cilium completion bash"
   register: cilium_completion_source
   changed_when: false
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
 
 - name: get hubble cli completion source
   ansible.builtin.command:
     cmd: "hubble completion bash"
   register: hubble_completion_source
   changed_when: false
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
 
 - name: save bash auto completion file for cilium
   ansible.builtin.copy:

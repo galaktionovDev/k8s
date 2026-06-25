@@ -1,0 +1,6 @@
+# This file managed by containerization group playbook
+{% if dnf_install_package_version %}
+Package: {{ dnf_install_package_name }}
+Pin: version {{ dnf_install_package_version }}
+Pin-Priority: 1002
+{% endif %}

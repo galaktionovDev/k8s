@@ -1,26 +1,13 @@
 ---
-- name: Install additional packages
-  ansible.builtin.apt:
-    name: "{{ set_packages_addition_packages }}"
-    state: present
-    update_cache: true
-    cache_valid_time: 60
-  when:
-    - set_packages_addition_packages | length > 0
 
-- name: Remove unnecessary packages
-  ansible.builtin.apt:
-    name: "{{ set_packages_unnecessary_packages }}"
-    state: absent
-  when: set_packages_unnecessary_packages | length > 0
+- name: Print OS family
+  debug:
+    msg: "Distribution is {{ ansible_distribution }}"
 
-- name: Hold addition packages
-  ansible.builtin.dpkg_selections:
-    name: "{{ item | split('=') | first }}"
-    selection: hold
-  loop: "{{ set_packages_addition_packages }}"
-  when:
-    - set_packages_addition_packages | length > 0
-    - set_packages_hold | bool
+- name: Configure Repositories for Debian/Ubuntu
+  include_tasks: set_packages_debian.yml
+  when: ansible_distribution.split(' ') | first | lower in ['ubuntu', 'astra', 'debian']
 
-
+- name: Configure Repositories for RedOS/CentOS/AlmaLinux
+  include_tasks: set_packages_rhel.yml
+  when: ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
