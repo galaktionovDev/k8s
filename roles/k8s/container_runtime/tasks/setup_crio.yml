@@ -40,6 +40,8 @@
     apt_install:
       - libip6tc2=1.8.9-2+b2
       - iptables=1.8.9-2+b2
+      - cri-o=1.34.0-1.1
+      - cri-tools=1.34.0-1.1
   ansible.builtin.import_role:
     name: common/apt_install
   when: ansible_distribution.split(' ') | first | lower in ['astra']
