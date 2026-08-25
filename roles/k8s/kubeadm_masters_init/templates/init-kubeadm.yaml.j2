@@ -1,5 +1,5 @@
 ---
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: InitConfiguration
 bootstrapTokens:
 - groups:
@@ -20,13 +20,14 @@ nodeRegistration:
   ignorePreflightErrors:
     - ImagePull
   kubeletExtraArgs:
-    root-dir: /app/kubelet
+    - name: root-dir
+      value: /app/kubelet
 patches:
   directory: /etc/kubernetes/kubeadm/patches
 skipPhases:
   - addon/kube-proxy
 ---
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: ClusterConfiguration
 kubernetesVersion: {{ kubeadm_masters_init_k8s_version }}
 imageRepository: "{{ kubeadm_masters_init_registry }}"
@@ -39,22 +40,34 @@ apiServer:
 {% endif %}
   timeoutForControlPlane: 4m0s
   extraArgs:
-    authorization-mode: "Node,RBAC"
-    enable-admission-plugins: "{{ kubeadm_masters_init_enabled_admission_plugins | join(',') }}"
-    event-ttl: 1h0m0s
+    - name: authorization-mode
+      value: "Node,RBAC"
+    - name: enable-admission-plugins
+      value: "{{ kubeadm_masters_init_enabled_admission_plugins | join(',') }}"
+    - name: event-ttl
+      value: 1h0m0s
 {% if kubeadm_masters_init_audit_enabled | bool %}
-    audit-policy-file: "/etc/kubernetes/audit/policy.yaml"
-    audit-log-path: "/var/log/kube-audit/audit.log"
-    audit-log-maxsize: "500"
-    audit-log-maxbackup: "3"
+    - name: audit-policy-file
+      value: "/etc/kubernetes/audit/policy.yaml"
+    - name: audit-log-path
+      value: "/var/log/kube-audit/audit.log"
+    - name: audit-log-maxsize
+      value: "500"
+    - name: audit-log-maxbackup
+      value: "3"
 {% endif %}
 {% if kubeadm_matster_init_oidc_auth_enabled | bool %}
-    oidc-issuer-url: https://auth.apps.{{ kubeadm_masters_init_cluster_name }}.{{ domain_suffix }}
-    oidc-client-id: {{ kubeadm_masters_init_cluster_name }}
-    oidc-username-claim: email
-    oidc-groups-claim: groups
+    - name: oidc-issuer-url
+      value: https://auth.apps.{{ kubeadm_masters_init_cluster_name }}.{{ domain_suffix }}
+    - name: oidc-client-id
+      value: {{ kubeadm_masters_init_cluster_name }}
+    - name: oidc-username-claim
+      value: email
+    - name: oidc-groups-claim
+      value: groups
 {% endif %}
-    enable-bootstrap-token-auth: "true"
+    - name: enable-bootstrap-token-auth
+      value: "true"
 {% if kubeadm_masters_init_audit_enabled | bool %}
   extraVolumes:
   - name: "audit-policy"
@@ -73,9 +86,11 @@ clusterName: {{ kubeadm_masters_init_cluster_name }}
 controllerManager:
   extraArgs:
 {% if monitoring_enabled | default('false') | bool %}
-    bind-address: 0.0.0.0
+    - name: bind-address
+      value: "0.0.0.0"
 {% else %}
-    bind-address: 127.0.0.1
+    - name: bind-address
+      value: "127.0.0.1"
 {% endif %}
 dns:
   imageRepository: "{{ kubeadm_masters_init_registry }}/coredns"
@@ -85,7 +100,8 @@ etcd:
 {% if kubeadm_masters_init_etcd_extra_args_list | length > 0 %}
     extraArgs:
 {% for key,value in kubeadm_masters_init_etcd_extra_args_list.items() %}
-      {{ key }}: "{{ value }}"
+      - name: {{ key }}
+        value: "{{ value }}"
 {% endfor %}
 {% endif %}
 controlPlaneEndpoint: {{ kubeadm_masters_init_cluster_api_hostname }}
@@ -96,9 +112,11 @@ networking:
 scheduler:
   extraArgs:
 {% if monitoring_enabled | default('false') | bool %}
-    bind-address: 0.0.0.0
+    - name: bind-address
+      value: "0.0.0.0"
 {% else %}
-    bind-address: 127.0.0.1
+    - name: bind-address
+      value: "127.0.0.1"
 {% endif %}
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1

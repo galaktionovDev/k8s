@@ -26,8 +26,8 @@ cr_crio_kernel_modules:
   - br_netfilter
 
 cr_crio_packages_names:
-  - "cri-o=1.34.0-1.1"
-  - "cri-tools=1.34.0-1.1"
+  - "cri-o=1.36.4-1.1"
+  - "cri-tools=1.36.0-1.1"
 
 cr_crio_dnf_packages_names:
   - "cri-o1.34"

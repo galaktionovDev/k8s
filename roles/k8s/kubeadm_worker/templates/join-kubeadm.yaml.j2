@@ -1,6 +1,5 @@
 ---
-apiVersion: kubeadm.k8s.io/v1beta3
-caCertPath: /etc/kubernetes/pki/ca.crt
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: JoinConfiguration
 discovery:
   bootstrapToken:
@@ -17,6 +16,7 @@ nodeRegistration:
   ignorePreflightErrors:
     - ImagePull
   kubeletExtraArgs:
-    root-dir: /app/kubelet
+    - name: root-dir
+      value: /app/kubelet
 patches:
   directory: /etc/kubernetes/kubeadm/patches
