@@ -38,7 +38,6 @@ apiServer:
   - "{{ san }}"
 {% endfor %}
 {% endif %}
-  timeoutForControlPlane: 4m0s
   extraArgs:
     - name: authorization-mode
       value: "Node,RBAC"
@@ -147,7 +146,6 @@ systemReserved:
   memory: 800Mi
   ephemeral-storage: 1Gi
 ---
-# UpgradeConfiguration for kubeadm upgrade apply (required in K8s 1.34+)
 apiVersion: kubeadm.k8s.io/v1beta4
 kind: UpgradeConfiguration
 apply:

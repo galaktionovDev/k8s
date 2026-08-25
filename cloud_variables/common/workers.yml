@@ -4,4 +4,4 @@ node_labels:
   type: worker
 
 pull_images_list:
-  - cluster.mirror/pause:3.10.1 
+  - cluster.mirror/pause:3.10.2

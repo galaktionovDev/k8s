@@ -65,7 +65,7 @@ kubeadm_masters_init_cluster_name: "{{ cloud_cluster_name }}"
 kubectl_version: "{{ cloud_k8s_version }}*"
 kubelet_version: "{{ cloud_k8s_version }}*"
 kubed_cluster_name: "{{ cloud_cluster_name }}"
-coredns_image: coredns/coredns:v1.12.1
+coredns_image: coredns/coredns:v1.14.2
 
 cluster_container_runtime: crio
 cr_socket: "/var/run/crio/crio.sock"
@@ -74,7 +74,7 @@ cr_crio_auth_hostname: ""
 
 cluster_registry: "cluster.mirror"
 
-cr_sandbox_image: "{{ cluster_registry }}/pause:3.10.1"
+cr_sandbox_image: "{{ cluster_registry }}/pause:3.10.2"
 
 cr_crio_registry_mapping_mirror_default: "{{ nexus_docker_url }}"
 # cr_crio_registry_mapping_mirror_default: "{{ docker_hostname }}/{{ nexus_docker_repo }}"
