@@ -4,4 +4,4 @@
   when: 
     - set_repositories_required_repo | length > 0
     - not (ansible_distribution == 'Ubuntu' and ansible_distribution_major_version in ['22', '24'])
-    - not ('Astra' in ansible_distribution and ansible_distribution_version == '1.8')
+    - not ('Astra' in ansible_distribution and ansible_distribution_version is search('1\.8'))
