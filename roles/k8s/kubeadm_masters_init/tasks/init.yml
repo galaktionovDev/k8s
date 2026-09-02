@@ -141,6 +141,16 @@
       register: selinux_status
       changed_when: false
 
+- name: Force NTP synchronization
+  ansible.builtin.command: chronyc -a makestep
+  become: true
+  ignore_errors: true
+  
+- name: Wait for NTP sync completion
+  ansible.builtin.command: chronyc waitsync 10
+  become: true
+  ignore_errors: true
+
 - name: init first master
   run_once: true
   ansible.builtin.command:
