@@ -32,7 +32,7 @@ cr_crio_packages_names:
 cr_crio_dnf_packages_names:
   - "cri-o1.36"
   - "cri-tools1.36"
-  
+  - "crun"
 
 # cr_crio_hold_package_name:
 #   - "cri-o"

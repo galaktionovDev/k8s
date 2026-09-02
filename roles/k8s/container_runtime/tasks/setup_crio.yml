@@ -1,5 +1,11 @@
 ---
 # tasks file for setup_crio
+- name: "Setup_crio | Determine OCI runtime per OS"
+  ansible.builtin.set_fact:
+    cr_crio_runtime: >-
+      {{ 'crun'
+         if ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
+         else 'runc' }}
 
 - name: "Setup_crio | Configure required kernel modules to load at startup and trigger reload if needed"
   template:

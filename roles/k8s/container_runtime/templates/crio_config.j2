@@ -21,13 +21,13 @@ log_size_max = -1
 log_to_journald = false
 read_only = false
 log_level = "info"
-default_runtime = "runc"
+default_runtime = "{{ cr_crio_runtime | default('runc') }}"
 pids_limit = 65536
 
-[crio.runtime.runtimes.runc]
+[crio.runtime.runtimes.{{ cr_crio_runtime | default('runc') }}]
 runtime_path = ""
 runtime_type = "oci"
-runtime_root = "/run/runc"
+runtime_root = "/run/{{ cr_crio_runtime | default('runc') }}"
 
 
 [crio.image]
