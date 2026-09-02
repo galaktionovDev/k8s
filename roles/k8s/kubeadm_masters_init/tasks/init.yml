@@ -65,81 +65,81 @@
   notify:
     - kubeadm upgrade
 
-- name: Get firewall status
-  ansible.builtin.service_facts:
-  no_log: true
-  register: service_firewall_facts
-  when: ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
+# - name: Get firewall status
+#   ansible.builtin.service_facts:
+#   no_log: true
+#   register: service_firewall_facts
+#   when: ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
 
-- name: Stop and disable firewalld
-  ansible.builtin.service:
-    name: firewalld
-    state: stopped
-    enabled: false
-  when:
-    - service_firewall_facts.ansible_facts.services['firewalld.service'] is defined
-    - service_firewall_facts.ansible_facts.services['firewalld.service']['status'] != 'not-found'
+# - name: Stop and disable firewalld
+#   ansible.builtin.service:
+#     name: firewalld
+#     state: stopped
+#     enabled: false
+#   when:
+#     - service_firewall_facts.ansible_facts.services['firewalld.service'] is defined
+#     - service_firewall_facts.ansible_facts.services['firewalld.service']['status'] != 'not-found'
 
-- name: Configure SELinux
-  when:
-    - ansible_selinux is defined
-    - ansible_selinux.status != 'disabled'
-  block:
+# - name: Configure SELinux
+#   when:
+#     - ansible_selinux is defined
+#     - ansible_selinux.status != 'disabled'
+#   block:
 
-    - name: Install selinux packages(RHEL)
-      ansible.builtin.yum:
-        name: "{{ item }}"
-        state: present
-        update_cache: true
-      loop:
-        - "python3-policycoreutils"
-        - "python3-libselinux"
-        - "container-selinux"
+#     - name: Install selinux packages(RHEL)
+#       ansible.builtin.yum:
+#         name: "{{ item }}"
+#         state: present
+#         update_cache: true
+#       loop:
+#         - "python3-policycoreutils"
+#         - "python3-libselinux"
+#         - "container-selinux"
 
-    - name: Add ports for Kubernetes and Cilium
-      community.general.seport:
-        ports: "{{ item.ports }}"
-        proto: "{{ item.proto }}"
-        setype: "container_port_t"
-        state: present
-      loop:
-        - { ports: "6443", proto: "tcp" }
-        - { ports: "10250", proto: "tcp" }
-        - { ports: "2379-2380", proto: "tcp" }
-        - { ports: "8472", proto: "udp" }
-        - { ports: "51871", proto: "udp" }
-        - { ports: "443", proto: "tcp" }
-        - { ports: "80", proto: "tcp" }
+#     - name: Add ports for Kubernetes and Cilium
+#       community.general.seport:
+#         ports: "{{ item.ports }}"
+#         proto: "{{ item.proto }}"
+#         setype: "container_port_t"
+#         state: present
+#       loop:
+#         - { ports: "6443", proto: "tcp" }
+#         - { ports: "10250", proto: "tcp" }
+#         - { ports: "2379-2380", proto: "tcp" }
+#         - { ports: "8472", proto: "udp" }
+#         - { ports: "51871", proto: "udp" }
+#         - { ports: "443", proto: "tcp" }
+#         - { ports: "80", proto: "tcp" }
 
-    - name: Enable all container SELinux booleans
-      ansible.builtin.seboolean:
-        name: "{{ item }}"
-        state: yes
-        persistent: yes
-      loop:
-        - container_connect_any
-        - container_manage_cgroup
-        - container_use_devices
-        - container_read_certs
-        - container_use_dri_devices
+#     - name: Enable all container SELinux booleans
+#       ansible.builtin.seboolean:
+#         name: "{{ item }}"
+#         state: yes
+#         persistent: yes
+#       loop:
+#         - container_connect_any
+#         - container_manage_cgroup
+#         - container_use_devices
+#         - container_read_certs
+#         - container_use_dri_devices
 
-    - name: Set SELinux to permissive mode
-      ansible.builtin.selinux:
-        policy: targeted
-        state: permissive
-      register: selinux_permissive
-      ignore_errors: yes
+#     - name: Set SELinux to permissive mode
+#       ansible.builtin.selinux:
+#         policy: targeted
+#         state: permissive
+#       register: selinux_permissive
+#       ignore_errors: yes
 
-    - name: Reboot if SELinux mode changed
-      ansible.builtin.reboot:
-        reboot_timeout: 600
-      when: selinux_permissive is changed
-      ignore_errors: yes
+#     - name: Reboot if SELinux mode changed
+#       ansible.builtin.reboot:
+#         reboot_timeout: 600
+#       when: selinux_permissive is changed
+#       ignore_errors: yes
 
-    - name: Verify SELinux status
-      ansible.builtin.command: getenforce
-      register: selinux_status
-      changed_when: false
+#     - name: Verify SELinux status
+#       ansible.builtin.command: getenforce
+#       register: selinux_status
+#       changed_when: false
 
 - name: Force NTP synchronization
   ansible.builtin.command: chronyc -a makestep

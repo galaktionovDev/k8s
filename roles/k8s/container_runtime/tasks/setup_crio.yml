@@ -70,6 +70,60 @@
     - "restart crio"
   when: ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
 
+- name: RedOS/RHEL specific OS preparations (Firewall, NTP, SELinux)
+  when: ansible_distribution.split(' ') | first | lower in ['red', 'almalinux', 'centos', 'oraclelinux']
+  block:
+    - name: Stop and disable firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Force NTP synchronization (chrony)
+      ansible.builtin.command: chronyc -a makestep
+      become: true
+      # Специально без ignore_errors: если время не синхронизируется, деплой упадет с понятной ошибкой до старта k8s
+
+    - name: Wait for NTP sync completion (chrony)
+      ansible.builtin.command: chronyc waitsync 10
+      become: true
+
+    - name: Configure SELinux for Containers (Keep Enforcing)
+      when: 
+        - ansible_selinux is defined
+        - ansible_selinux.status == 'enabled'
+      block:
+        - name: Allow containers to manage cgroup and use devices
+          ansible.builtin.seboolean:
+            name: "{{ item }}"
+            state: true
+            persistent: true
+          loop:
+            - container_manage_cgroup
+            - container_use_devices
+
+        - name: Add ports for Kubernetes and Cilium to SELinux
+          community.general.seport:
+            ports: "{{ item.ports }}"
+            proto: "{{ item.proto }}"
+            setype: "container_port_t"
+            state: present
+          loop:
+            - { ports: "10250", proto: "tcp" } # Kubelet
+            - { ports: "6081", proto: "udp" }  # Cilium Geneve (туннелирование по умолчанию)
+            - { ports: "8472", proto: "udp" }  # Cilium VXLAN
+            - { ports: "4240", proto: "tcp" }  # Cilium Health
+            - { ports: "4244", proto: "tcp" }  # Hubble Server
+            - { ports: "4245", proto: "tcp" }  # Hubble Relay
+
+- name: Debian/Ubuntu/Astra Force NTP synchronization
+  ansible.builtin.systemd:
+    name: systemd-timesyncd
+    state: restarted
+  become: true
+  when: ansible_distribution.split(' ') | first | lower in ['ubuntu', 'astra', 'debian']
+  ignore_errors: true # Astra может использовать другой сервис времени
 
 - name: Setup_crio | Create directories (logs, storage, etc)
   file:
